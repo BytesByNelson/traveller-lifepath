@@ -5,3 +5,4 @@ export * from './effects';
 export * from './careers';
 export * from './species';
 export * from './character';
+export * from './equipment';

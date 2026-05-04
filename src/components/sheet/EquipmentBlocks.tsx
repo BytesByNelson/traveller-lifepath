@@ -1,6 +1,8 @@
 import type { Augment, Armor, Character, Item, Weapon } from '../../types';
 import { SheetPanel } from './SheetPanel';
 import { EditableTable, type ColumnDef } from '../editable/EditableTable';
+import { CataloguePicker } from '../CataloguePicker';
+import { EQUIPMENT_TRAITS } from '../../data';
 
 type AugmentRow = { id: string; name: string; tl: number; description: string };
 type ArmourRow = { id: string; name: string; rad: string; protection: number; kg: string; description: string };
@@ -40,7 +42,16 @@ const EQ_COLS: ColumnDef<EquipRow>[] = [
 
 type Props = { character: Character; onChange?: (next: Character) => void };
 
-/** Wrapper that renders read-only or editable based on onChange presence. */
+const formatTraits = (traits: { trait: string; rating?: number }[]): string =>
+  traits
+    .map((t) => {
+      const def = EQUIPMENT_TRAITS[t.trait as keyof typeof EQUIPMENT_TRAITS];
+      const short = def?.shortName ?? t.trait;
+      return t.rating !== undefined ? `${short} ${t.rating}` : short;
+    })
+    .join(', ');
+
+/* ─────────────── Augments ─────────────── */
 export function AugmentsBlock({ character, onChange }: Props) {
   if (!onChange) {
     return (
@@ -59,21 +70,39 @@ export function AugmentsBlock({ character, onChange }: Props) {
     tl: a.tl ?? 0,
     description: a.description ?? '',
   }));
+  const writeBack = (rs: AugmentRow[]) =>
+    onChange({ ...character, augments: rs.map((r) => ({ id: r.id, name: r.name, tl: r.tl, description: r.description })) });
   return (
     <SheetPanel badge="Augments">
       <EditableTable
         rows={rows}
         columns={AUG_COLS}
-        onChange={(rs) =>
-          onChange({ ...character, augments: rs.map((r) => ({ id: r.id, name: r.name, tl: r.tl, description: r.description })) })
-        }
+        onChange={writeBack}
         emptyRows={3}
         blank={() => ({ name: '', tl: 0, description: '' })}
       />
+      <div className="mt-1">
+        <CataloguePicker
+          kind="augment"
+          label="+ Pick augment from catalogue"
+          onSelect={(a) =>
+            writeBack([
+              ...rows,
+              {
+                id: crypto.randomUUID(),
+                name: a.name + (a.variant ? ` (${a.variant})` : ''),
+                tl: a.tl,
+                description: a.improvement + (a.description ? ` — ${a.description}` : ''),
+              },
+            ])
+          }
+        />
+      </div>
     </SheetPanel>
   );
 }
 
+/* ─────────────── Armour ─────────────── */
 export function ArmourBlock({ character, onChange }: Props) {
   if (!onChange) {
     return (
@@ -94,24 +123,44 @@ export function ArmourBlock({ character, onChange }: Props) {
     kg: '',
     description: a.description ?? '',
   }));
+  const writeBack = (rs: ArmourRow[]) =>
+    onChange({
+      ...character,
+      armor: rs.map((r) => ({ id: r.id, name: r.name, protection: r.protection, description: r.description })),
+    });
   return (
     <SheetPanel badge="Armour">
       <EditableTable
         rows={rows}
         columns={ARM_COLS}
-        onChange={(rs) =>
-          onChange({
-            ...character,
-            armor: rs.map((r) => ({ id: r.id, name: r.name, protection: r.protection, description: r.description })),
-          })
-        }
+        onChange={writeBack}
         emptyRows={3}
         blank={() => ({ name: '', rad: '', protection: 0, kg: '', description: '' })}
       />
+      <div className="mt-1">
+        <CataloguePicker
+          kind="armour"
+          label="+ Pick armour from catalogue"
+          onSelect={(a) =>
+            writeBack([
+              ...rows,
+              {
+                id: crypto.randomUUID(),
+                name: a.name + (a.variant ? ` (${a.variant})` : ''),
+                rad: a.rad?.toString() ?? '—',
+                protection: a.protection,
+                kg: a.mass.toString(),
+                description: [a.protectionNote, a.notes].filter(Boolean).join(' · '),
+              },
+            ])
+          }
+        />
+      </div>
     </SheetPanel>
   );
 }
 
+/* ─────────────── Weapons ─────────────── */
 export function WeaponsBlock({ character, onChange }: Props) {
   if (!onChange) {
     return (
@@ -134,24 +183,46 @@ export function WeaponsBlock({ character, onChange }: Props) {
     mag: '',
     description: w.description ?? '',
   }));
+  const writeBack = (rs: WeaponRow[]) =>
+    onChange({
+      ...character,
+      weapons: rs.map((r) => ({ id: r.id, name: r.name, tl: r.tl, range: r.range, damage: r.damage, description: r.description })),
+    });
   return (
     <SheetPanel badge="Weapons">
       <EditableTable
         rows={rows}
         columns={WEP_COLS}
-        onChange={(rs) =>
-          onChange({
-            ...character,
-            weapons: rs.map((r) => ({ id: r.id, name: r.name, tl: r.tl, range: r.range, damage: r.damage, description: r.description })),
-          })
-        }
+        onChange={writeBack}
         emptyRows={4}
         blank={() => ({ name: '', tl: 0, range: '', damage: '', kg: '', mag: '', description: '' })}
       />
+      <div className="mt-1">
+        <CataloguePicker
+          kind="weapon"
+          label="+ Pick weapon from catalogue"
+          onSelect={(w) =>
+            writeBack([
+              ...rows,
+              {
+                id: crypto.randomUUID(),
+                name: w.name + (w.variant ? ` (${w.variant})` : ''),
+                tl: w.tl,
+                range: w.range,
+                damage: w.damage,
+                kg: w.mass.toString(),
+                mag: w.magazine?.toString() ?? '',
+                description: formatTraits(w.traits) || (w.description ?? ''),
+              },
+            ])
+          }
+        />
+      </div>
     </SheetPanel>
   );
 }
 
+/* ─────────────── Equipment ─────────────── */
 export function EquipmentBlock({ character, onChange }: Props) {
   if (!onChange) {
     return (
@@ -171,20 +242,38 @@ export function EquipmentBlock({ character, onChange }: Props) {
     kg: '',
     description: e.description ?? '',
   }));
+  const writeBack = (rs: EquipRow[]) =>
+    onChange({
+      ...character,
+      equipment: rs.map((r) => ({ id: r.id, name: r.name, tl: r.tl, description: r.description })),
+    });
   return (
     <SheetPanel badge="Equipment">
       <EditableTable
         rows={rows}
         columns={EQ_COLS}
-        onChange={(rs) =>
-          onChange({
-            ...character,
-            equipment: rs.map((r) => ({ id: r.id, name: r.name, tl: r.tl, description: r.description })),
-          })
-        }
+        onChange={writeBack}
         emptyRows={6}
         blank={() => ({ name: '', tl: 0, kg: '', description: '' })}
       />
+      <div className="mt-1">
+        <CataloguePicker
+          kind="gear"
+          label="+ Pick gear from catalogue"
+          onSelect={(g) =>
+            writeBack([
+              ...rows,
+              {
+                id: crypto.randomUUID(),
+                name: g.name + (g.variant ? ` (${g.variant})` : ''),
+                tl: g.tl,
+                kg: g.mass !== undefined ? g.mass.toString() : '',
+                description: g.description ?? '',
+              },
+            ])
+          }
+        />
+      </div>
     </SheetPanel>
   );
 }
