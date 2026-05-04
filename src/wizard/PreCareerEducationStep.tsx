@@ -576,8 +576,11 @@ function describeGraduationBenefits(
   if (failsafeAuto) {
     return {
       headline: 'Did not graduate, but were not expelled.',
-      lines: [`Auto-entry to ${career} career (no qualification roll needed)`, 'No commission bonus on first term'],
-      followup: `Your next career will be ${career}.`,
+      lines: [
+        `You drop out of the academy and enlist directly into ${career}`,
+        'No commission bonus on your first term',
+      ],
+      followup: `Per the rulebook, dropping out (rolling ≥ 3 on graduation) still routes you into the tied service. Your next career will be ${career}.`,
     };
   }
   return {

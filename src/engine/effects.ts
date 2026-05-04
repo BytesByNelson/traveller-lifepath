@@ -106,6 +106,8 @@ export type Prompt =
       kind: 'name_connection';
       type: ConnectionType;
       title: string;
+      /** When the same event grants multiple of the same connection type (e.g. D3 Allies). */
+      progress?: { current: number; total: number };
     }
   | {
       kind: 'convert_connection';
@@ -625,11 +627,22 @@ const apply = (state: EngineState, e: Effect, rng: Rng): EngineState => {
     case 'gain_connection': {
       const count = resolveCount(e.count, rng);
       if (count <= 0) return state;
+      // Track progress when an event grants multiple connections (e.g. D3 Allies).
+      const total = e._totalCount ?? count;
+      const current = total - count + 1;
       return {
         ...state,
-        prompt: { kind: 'name_connection', type: e.connection, title: state.context.at(-1) ?? 'Name the connection' },
+        prompt: {
+          kind: 'name_connection',
+          type: e.connection,
+          title: state.context.at(-1) ?? 'Name the connection',
+          ...(total > 1 ? { progress: { current, total } } : {}),
+        },
         queue: count > 1
-          ? [{ type: 'gain_connection', connection: e.connection, count: { fixed: count - 1 } }, ...state.queue]
+          ? [
+              { type: 'gain_connection', connection: e.connection, count: { fixed: count - 1 }, _totalCount: total },
+              ...state.queue,
+            ]
           : state.queue,
       };
     }

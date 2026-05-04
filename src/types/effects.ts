@@ -120,7 +120,13 @@ export type Effect =
       description: string;
       severity: 'nearly_killed' | 'severely_injured' | 'missing_eye_or_limb' | 'scarred' | 'injured' | 'lightly_injured';
     }
-  | { type: 'gain_connection'; connection: ConnectionType; count?: Count }
+  | {
+      type: 'gain_connection';
+      connection: ConnectionType;
+      count?: Count;
+      /** Internal: original resolved total when recursing for multi-grants. Don't set in data. */
+      _totalCount?: number;
+    }
   | { type: 'gain_connection_choice'; choices: ConnectionType[]; count?: Count }
   | {
       type: 'convert_connection';

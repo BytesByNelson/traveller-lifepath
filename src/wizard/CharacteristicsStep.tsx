@@ -138,7 +138,9 @@ export function CharacteristicsStep({
                       </button>
                     </>
                   ) : (
-                    <span className="text-xs text-gray-400">{base === 7 ? '— pending —' : 'rolled'}</span>
+                    <span className="text-xs text-gray-400">
+                      {character.rollLog.some((r) => r.context === `Roll ${code}`) ? 'rolled' : '— pending —'}
+                    </span>
                   )}
                 </td>
               </tr>

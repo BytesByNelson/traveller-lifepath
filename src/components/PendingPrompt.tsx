@@ -339,8 +339,19 @@ function NameConnectionPrompt({ state, onUpdate }: Props) {
   if (p?.kind !== 'name_connection') return null;
   return (
     <div className="border border-gray-300 rounded-lg p-4 bg-white">
-      <h3 className="font-semibold mb-2 capitalize">New {p.type}</h3>
-      <p className="text-sm text-gray-600 mb-2">Optional: describe this {p.type} (their name, role, why they matter).</p>
+      <div className="flex items-baseline justify-between mb-2">
+        <h3 className="font-semibold capitalize">New {p.type}</h3>
+        {p.progress ? (
+          <span className="text-xs text-gray-500">
+            {p.progress.current} of {p.progress.total}
+          </span>
+        ) : null}
+      </div>
+      <p className="text-sm text-gray-600 mb-2">
+        {p.progress && p.progress.total > 1
+          ? `Adding ${p.progress.total} ${p.type}s — describe each one as you go.`
+          : `Optional: describe this ${p.type} (their name, role, why they matter).`}
+      </p>
       <input
         type="text"
         value={name}
@@ -349,7 +360,10 @@ function NameConnectionPrompt({ state, onUpdate }: Props) {
         className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
       />
       <button
-        onClick={() => onUpdate(resolveNameConnection(state, name))}
+        onClick={() => {
+          onUpdate(resolveNameConnection(state, name));
+          setName('');
+        }}
         className="mt-3 px-3 py-1.5 rounded bg-indigo-600 text-white text-sm hover:bg-indigo-700"
       >
         Add
