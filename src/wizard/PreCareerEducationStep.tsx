@@ -36,6 +36,19 @@ export function PreCareerEducationStep({
   const termIndex = character.careerHistory.length;
 
   if (phase.kind === 'choose') {
+    const edu = character.characteristics.EDU;
+    const end = character.characteristics.END;
+    const intStat = character.characteristics.INT;
+    const uniReq = UNIVERSITY.entry.check.target;
+    const armyReq = MILITARY_ACADEMY.entry.army.check.target;
+    const marineReq = MILITARY_ACADEMY.entry.marine.check.target;
+    const navyReq = MILITARY_ACADEMY.entry.navy.check.target;
+
+    const uniBlocked = edu < uniReq;
+    const armyBlocked = end < armyReq;
+    const marineBlocked = end < marineReq;
+    const navyBlocked = intStat < navyReq;
+
     return (
       <section className="space-y-4">
         <h2 className="text-xl font-semibold">Pre-career education</h2>
@@ -45,12 +58,16 @@ export function PreCareerEducationStep({
         <div className="grid grid-cols-2 gap-2">
           <TrackButton
             title="University"
-            subtitle={`Entry: EDU ${UNIVERSITY.entry.check.target}+`}
+            subtitle={`Entry: EDU ${uniReq}+ — you have EDU ${edu}`}
+            disabled={uniBlocked}
+            disabledReason={uniBlocked ? `Requires EDU ${uniReq}+` : undefined}
             onClick={() => setPhase({ kind: 'university_skills' })}
           />
           <TrackButton
             title="Army Academy"
-            subtitle={`Entry: END ${MILITARY_ACADEMY.entry.army.check.target}+`}
+            subtitle={`Entry: END ${armyReq}+ — you have END ${end}`}
+            disabled={armyBlocked}
+            disabledReason={armyBlocked ? `Requires END ${armyReq}+` : undefined}
             onClick={() => {
               const state = startMilitaryAcademyEntry(character, 'army', termIndex, Math.random);
               setPhase({ kind: 'entry_check', track: 'army', engine: state });
@@ -58,7 +75,9 @@ export function PreCareerEducationStep({
           />
           <TrackButton
             title="Marine Academy"
-            subtitle={`Entry: END ${MILITARY_ACADEMY.entry.marine.check.target}+`}
+            subtitle={`Entry: END ${marineReq}+ — you have END ${end}`}
+            disabled={marineBlocked}
+            disabledReason={marineBlocked ? `Requires END ${marineReq}+` : undefined}
             onClick={() => {
               const state = startMilitaryAcademyEntry(character, 'marine', termIndex, Math.random);
               setPhase({ kind: 'entry_check', track: 'marine', engine: state });
@@ -66,13 +85,20 @@ export function PreCareerEducationStep({
           />
           <TrackButton
             title="Navy Academy"
-            subtitle={`Entry: INT ${MILITARY_ACADEMY.entry.navy.check.target}+`}
+            subtitle={`Entry: INT ${navyReq}+ — you have INT ${intStat}`}
+            disabled={navyBlocked}
+            disabledReason={navyBlocked ? `Requires INT ${navyReq}+` : undefined}
             onClick={() => {
               const state = startMilitaryAcademyEntry(character, 'navy', termIndex, Math.random);
               setPhase({ kind: 'entry_check', track: 'navy', engine: state });
             }}
           />
         </div>
+        {uniBlocked && armyBlocked && marineBlocked && navyBlocked ? (
+          <p className="text-xs text-gray-500 italic">
+            None of the academies will accept this Traveller — proceed straight to a career.
+          </p>
+        ) : null}
         <button onClick={onSkip} className="px-4 py-2 rounded border border-gray-300 text-sm hover:bg-gray-50">
           Skip pre-career education
         </button>
@@ -216,7 +242,36 @@ export function PreCareerEducationStep({
   );
 }
 
-function TrackButton({ title, subtitle, onClick }: { title: string; subtitle: string; onClick: () => void }) {
+function TrackButton({
+  title,
+  subtitle,
+  onClick,
+  disabled = false,
+  disabledReason,
+}: {
+  title: string;
+  subtitle: string;
+  onClick: () => void;
+  disabled?: boolean;
+  disabledReason?: string;
+}) {
+  if (disabled) {
+    return (
+      <div
+        className="px-3 py-2 rounded border border-gray-200 bg-gray-50 text-left opacity-60 cursor-not-allowed"
+        title={disabledReason}
+        aria-label={`${title} (disabled — ${disabledReason ?? 'requirement not met'})`}
+      >
+        <div className="font-medium text-gray-500">{title}</div>
+        <div className="text-xs text-gray-500">{subtitle}</div>
+        {disabledReason ? <div className="text-xs text-red-600 mt-0.5">{disabledReason}</div> : null}
+      </div>
+    );
+  }
+  return _TrackButtonEnabled({ title, subtitle, onClick });
+}
+
+function _TrackButtonEnabled({ title, subtitle, onClick }: { title: string; subtitle: string; onClick: () => void }) {
   return (
     <button onClick={onClick} className="px-3 py-2 rounded border border-gray-300 hover:bg-gray-50 text-left">
       <div className="font-medium">{title}</div>
