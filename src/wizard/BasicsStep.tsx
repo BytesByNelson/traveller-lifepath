@@ -59,6 +59,45 @@ export function BasicsStep({
       </label>
 
       <fieldset className="rounded border border-gray-300 p-3">
+        <legend className="px-2 text-sm font-medium text-gray-700">Dice rolls</legend>
+        <p className="text-xs text-gray-600 mb-2">
+          How would you like to handle dice rolls during creation?
+        </p>
+        <div className="grid grid-cols-2 gap-2">
+          {(['app', 'manual'] as const).map((mode) => {
+            const selected = character.wizardState?.rollMode === mode;
+            return (
+              <button
+                type="button"
+                key={mode}
+                onClick={() =>
+                  onChange({
+                    ...character,
+                    wizardState: {
+                      ...(character.wizardState ?? { step: 'basics' }),
+                      rollMode: mode,
+                    },
+                  })
+                }
+                className={`px-3 py-2 rounded border text-left ${
+                  selected ? 'border-indigo-600 bg-indigo-50' : 'border-gray-300 hover:bg-gray-50'
+                }`}
+              >
+                <div className="font-medium text-sm">
+                  {mode === 'app' ? 'Roll for me' : 'I\'ll roll my own dice'}
+                </div>
+                <div className="text-xs text-gray-600 mt-0.5">
+                  {mode === 'app'
+                    ? 'The website rolls 2D for every check and table; you just review the result.'
+                    : 'You roll physical dice and enter the result. The website still tracks DMs and outcomes.'}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </fieldset>
+
+      <fieldset className="rounded border border-gray-300 p-3">
         <legend className="px-2 text-sm font-medium text-gray-700">Optional rules</legend>
         <label className="flex items-start gap-2 text-sm text-gray-800 cursor-pointer">
           <input
@@ -87,7 +126,7 @@ export function BasicsStep({
 
       <button
         onClick={onNext}
-        disabled={!character.name.trim()}
+        disabled={!character.name.trim() || !character.wizardState?.rollMode}
         className="px-4 py-2 rounded bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 disabled:opacity-50"
       >
         Continue → Characteristics

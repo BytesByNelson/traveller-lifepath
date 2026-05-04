@@ -17,6 +17,7 @@ export function CharacteristicsStep({
 }) {
   const mods = SPECIES[character.species].charModifiers;
   const psionicsEnabled = character.wizardState?.psionicsEnabled === true;
+  const rollMode = character.wizardState?.rollMode ?? 'app';
   const [manualValues, setManualValues] = useState<Record<CharCode, string>>({
     STR: '', DEX: '', END: '', INT: '', EDU: '', SOC: '',
   });
@@ -64,17 +65,20 @@ export function CharacteristicsStep({
     <section className="space-y-4">
       <h2 className="text-xl font-semibold">Characteristics</h2>
       <p className="text-sm text-gray-600">
-        Roll 2D for each of the six characteristics, or enter values manually.
-        Species modifiers apply automatically.
+        {rollMode === 'app'
+          ? 'Roll 2D for each of the six characteristics. Species modifiers apply automatically.'
+          : 'Enter your 2D roll for each characteristic. Species modifiers apply automatically.'}
         {psionicsEnabled ? ' PSI is rolled too — 2D at creation.' : ''}
       </p>
 
-      <button
-        onClick={rollAll}
-        className="px-4 py-2 rounded bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700"
-      >
-        Roll all ({psionicsEnabled ? '2D × 7' : '2D × 6'})
-      </button>
+      {rollMode === 'app' ? (
+        <button
+          onClick={rollAll}
+          className="px-4 py-2 rounded bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700"
+        >
+          Roll all ({psionicsEnabled ? '2D × 7' : '2D × 6'})
+        </button>
+      ) : null}
 
       <table className="w-full text-sm">
         <thead className="text-xs text-gray-500">
@@ -107,29 +111,35 @@ export function CharacteristicsStep({
                   </span>
                 </td>
                 <td className="text-right">
-                  <input
-                    type="number"
-                    min={2}
-                    max={12}
-                    value={manualValues[code]}
-                    onChange={(e) => setManualValues((m) => ({ ...m, [code]: e.target.value }))}
-                    className="w-12 px-1 border border-gray-300 rounded text-xs text-right"
-                    placeholder="2–12"
-                    title={`Set ${CHAR_NAMES[code]} manually (2D)`}
-                  />
-                  <button
-                    type="button"
-                    className="ml-1 text-xs px-2 py-0.5 border border-gray-300 rounded hover:bg-gray-50"
-                    onClick={() => {
-                      const n = Number(manualValues[code]);
-                      if (Number.isInteger(n) && n >= 2 && n <= 12) {
-                        setManual(code, n);
-                        setManualValues((m) => ({ ...m, [code]: '' }));
-                      }
-                    }}
-                  >
-                    Set
-                  </button>
+                  {rollMode === 'manual' ? (
+                    <>
+                      <input
+                        type="number"
+                        min={2}
+                        max={12}
+                        value={manualValues[code]}
+                        onChange={(e) => setManualValues((m) => ({ ...m, [code]: e.target.value }))}
+                        className="w-12 px-1 border border-gray-300 rounded text-xs text-right"
+                        placeholder="2–12"
+                        title={`Set ${CHAR_NAMES[code]} manually (2D)`}
+                      />
+                      <button
+                        type="button"
+                        className="ml-1 text-xs px-2 py-0.5 border border-gray-300 rounded hover:bg-gray-50"
+                        onClick={() => {
+                          const n = Number(manualValues[code]);
+                          if (Number.isInteger(n) && n >= 2 && n <= 12) {
+                            setManual(code, n);
+                            setManualValues((m) => ({ ...m, [code]: '' }));
+                          }
+                        }}
+                      >
+                        Set
+                      </button>
+                    </>
+                  ) : (
+                    <span className="text-xs text-gray-400">{base === 7 ? '— pending —' : 'rolled'}</span>
+                  )}
                 </td>
               </tr>
             );
@@ -149,36 +159,41 @@ export function CharacteristicsStep({
                 ) : null}
               </td>
               <td className="text-right">
-                <button
-                  type="button"
-                  onClick={rollPsiOnly}
-                  className="text-xs px-2 py-0.5 border border-amber-400 bg-amber-50 rounded hover:bg-amber-100"
-                  title="Roll 2D for PSI"
-                >
-                  Roll
-                </button>
-                <input
-                  type="number"
-                  min={0}
-                  max={15}
-                  value={manualPsi}
-                  onChange={(e) => setManualPsi(e.target.value)}
-                  className="ml-1 w-12 px-1 border border-gray-300 rounded text-xs text-right"
-                  placeholder="0–15"
-                />
-                <button
-                  type="button"
-                  className="ml-1 text-xs px-2 py-0.5 border border-gray-300 rounded hover:bg-gray-50"
-                  onClick={() => {
-                    const n = Number(manualPsi);
-                    if (Number.isInteger(n) && n >= 0 && n <= 15) {
-                      setPsiManual(n);
-                      setManualPsi('');
-                    }
-                  }}
-                >
-                  Set
-                </button>
+                {rollMode === 'app' ? (
+                  <button
+                    type="button"
+                    onClick={rollPsiOnly}
+                    className="text-xs px-2 py-0.5 border border-amber-400 bg-amber-50 rounded hover:bg-amber-100"
+                    title="Roll 2D for PSI"
+                  >
+                    Roll
+                  </button>
+                ) : (
+                  <>
+                    <input
+                      type="number"
+                      min={0}
+                      max={15}
+                      value={manualPsi}
+                      onChange={(e) => setManualPsi(e.target.value)}
+                      className="w-12 px-1 border border-gray-300 rounded text-xs text-right"
+                      placeholder="0–15"
+                    />
+                    <button
+                      type="button"
+                      className="ml-1 text-xs px-2 py-0.5 border border-gray-300 rounded hover:bg-gray-50"
+                      onClick={() => {
+                        const n = Number(manualPsi);
+                        if (Number.isInteger(n) && n >= 0 && n <= 15) {
+                          setPsiManual(n);
+                          setManualPsi('');
+                        }
+                      }}
+                    >
+                      Set
+                    </button>
+                  </>
+                )}
               </td>
             </tr>
           ) : null}

@@ -120,6 +120,12 @@ export type WizardState = {
    */
   psionicsEnabled?: boolean;
   /**
+   * Roll mode chosen on the Basics step. 'app' lets the wizard roll dice; 'manual' has
+   * the player enter their own results. Persisted so subsequent rolls during the wizard
+   * default to the same control. Undefined means "ask before showing controls."
+   */
+  rollMode?: 'app' | 'manual';
+  /**
    * Set by gain_psion_eligibility effects (pre-career events / unusual events).
    * Once true, the Psion career becomes selectable even if psionics weren't
    * enabled at creation, and the in-play PSI test button on the sheet activates.

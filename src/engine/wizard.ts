@@ -179,6 +179,10 @@ export const startQualification = (
   if (career.qualification.special === 'automatic' || career.qualification.special === 'sentenced') {
     return { state: blankEngineState(c), auto: true };
   }
+  // Military academy graduates auto-qualify into the tied career on the next term.
+  if (c.wizardState?.preCareerBonus?.autoEntry?.career === careerId) {
+    return { state: blankEngineState(c), auto: true };
+  }
   const dmsOnQual: Effect[] = [];
   // Per-previous-career penalty
   if (career.qualification.perPreviousCareer && c.careerHistory.length > 0) {

@@ -31,6 +31,8 @@ type Props = {
 export function PendingPrompt({ state, onUpdate }: Props) {
   const p = state.prompt;
   if (!p) return null;
+  const mode = state.character.wizardState?.rollMode ?? 'both';
+  const diceMode = mode === 'app' || mode === 'manual' ? mode : 'both';
 
   switch (p.kind) {
     case 'check':
@@ -39,6 +41,7 @@ export function PendingPrompt({ state, onUpdate }: Props) {
           title={p.title}
           target={p.effect.roll.target}
           dms={p.dms}
+          mode={diceMode}
           onResult={(natural, total, source) => onUpdate(resolveCheck(state, natural, total, undefined, source))}
         />
       );
@@ -373,6 +376,7 @@ function WagerPrompt({ state, onUpdate }: Props) {
         title="Roll the check"
         target={p.effect.check.target}
         dms={[]}
+        mode={state.character.wizardState?.rollMode ?? 'both'}
         onResult={(natural, total) =>
           onUpdate(resolveWager(state, Number(wagered) || 0, natural, total))
         }

@@ -111,9 +111,13 @@ export function CareerTermStep({
 }) {
   const [phase, _setPhase] = useState<Phase>(() => {
     const forced = character.wizardState?.forcedNextCareer;
-    return forced
-      ? { kind: 'pick_assignment', careerId: forced.career as CareerId }
-      : { kind: 'pick_career' };
+    if (forced) return { kind: 'pick_assignment', careerId: forced.career as CareerId };
+    // Military academy graduation auto-routes to the tied career on the very next term.
+    const autoEntry = character.wizardState?.preCareerBonus?.autoEntry;
+    if (autoEntry && character.careerHistory.length === 0) {
+      return { kind: 'pick_assignment', careerId: autoEntry.career as CareerId };
+    }
+    return { kind: 'pick_career' };
   });
   const setPhase = (p: Phase) => {
     debug('wizard:career-term', 'phase →', p.kind, p);
@@ -159,7 +163,20 @@ export function CareerTermStep({
         : {}),
       ...(ctx.commissionAttempted ? { commission: { attempted: true, success: ctx.isOfficer, rolled: 0 } } : {}),
     };
-    onTermComplete(commitCareerTerm(c, term));
+    // Auto-entry only applies to the first career term after graduation — clear it once
+    // committed so subsequent terms let the player choose freely.
+    let next = commitCareerTerm(c, term);
+    if (next.wizardState?.preCareerBonus?.autoEntry) {
+      const { autoEntry: _drop, ...rest } = next.wizardState.preCareerBonus;
+      next = {
+        ...next,
+        wizardState: {
+          ...next.wizardState,
+          preCareerBonus: rest,
+        },
+      };
+    }
+    onTermComplete(next);
   };
 
   /** Decide what comes after the survival/event/commission/advancement chain. Routes through aging if due. */

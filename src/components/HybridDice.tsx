@@ -14,9 +14,11 @@ type Props = {
   onResult: (natural: number, modifiedTotal: number, source: 'rng' | 'manual') => void;
   /** RNG override — defaults to Math.random. */
   rng?: Rng;
+  /** Which controls to show. 'app' shows only Roll for me; 'manual' shows only the input; 'both' shows both. */
+  mode?: 'app' | 'manual' | 'both';
 };
 
-export function HybridDice({ title, target, dms, dice = '2D', onResult, rng }: Props) {
+export function HybridDice({ title, target, dms, dice = '2D', onResult, rng, mode = 'both' }: Props) {
   const [manualInput, setManualInput] = useState('');
   const [error, setError] = useState<string | null>(null);
 
@@ -67,32 +69,38 @@ export function HybridDice({ title, target, dms, dice = '2D', onResult, rng }: P
       ) : (
         <div className="text-xs text-gray-500 mb-3">No modifiers.</div>
       )}
-      <div className="flex gap-2 items-center">
-        <button
-          type="button"
-          onClick={rollForMe}
-          className="px-3 py-1.5 rounded bg-indigo-600 text-white text-sm hover:bg-indigo-700"
-        >
-          Roll for me ({dice})
-        </button>
-        <span className="text-xs text-gray-500">or</span>
-        <input
-          type="number"
-          inputMode="numeric"
-          min={min}
-          max={max}
-          value={manualInput}
-          onChange={(e) => setManualInput(e.target.value)}
-          placeholder={`${min}–${max}`}
-          className="w-20 px-2 py-1 border border-gray-300 rounded text-sm"
-        />
-        <button
-          type="button"
-          onClick={submitManual}
-          className="px-3 py-1.5 rounded border border-gray-300 text-sm hover:bg-gray-50"
-        >
-          Enter result
-        </button>
+      <div className="flex gap-2 items-center flex-wrap">
+        {mode !== 'manual' ? (
+          <button
+            type="button"
+            onClick={rollForMe}
+            className="px-3 py-1.5 rounded bg-indigo-600 text-white text-sm hover:bg-indigo-700"
+          >
+            Roll for me ({dice})
+          </button>
+        ) : null}
+        {mode === 'both' ? <span className="text-xs text-gray-500">or</span> : null}
+        {mode !== 'app' ? (
+          <>
+            <input
+              type="number"
+              inputMode="numeric"
+              min={min}
+              max={max}
+              value={manualInput}
+              onChange={(e) => setManualInput(e.target.value)}
+              placeholder={`${min}–${max}`}
+              className="w-20 px-2 py-1 border border-gray-300 rounded text-sm"
+            />
+            <button
+              type="button"
+              onClick={submitManual}
+              className="px-3 py-1.5 rounded border border-gray-300 text-sm hover:bg-gray-50"
+            >
+              Enter result
+            </button>
+          </>
+        ) : null}
       </div>
       {error ? <div className="text-xs text-red-600 mt-2">{error}</div> : null}
     </div>
