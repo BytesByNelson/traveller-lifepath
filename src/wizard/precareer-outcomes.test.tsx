@@ -74,10 +74,11 @@ describe('Pre-career education — outcome screens', () => {
       />,
     );
 
-    // Either an event prompt is showing, or the step is on the silent-event-jump button.
-    // Both routes eventually reach the event-result screen — click whichever is available.
-    // For determinism in this test we just verify the heading is "Pre-career event".
-    expect(screen.getByText('Pre-career event')).toBeInTheDocument();
+    // The pre-career 2D event roll is non-deterministic (uses Math.random). Depending on
+    // the result we either pause on a follow-up prompt ("Pre-career event" heading) or
+    // skip straight to the result screen ("Pre-career event — result" heading). Either
+    // outcome means we successfully advanced past the entry-outcome screen.
+    expect(screen.getByRole('heading', { name: /Pre-career event/ })).toBeInTheDocument();
   });
 
   it('shows a denial card after a failed entry, with an option to return to the chooser', async () => {
