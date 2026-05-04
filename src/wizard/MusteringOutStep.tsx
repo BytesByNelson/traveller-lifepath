@@ -52,9 +52,27 @@ export function MusteringOutStep({
 
   const rollFor = (careerId: CareerId, column: 'cash' | 'benefits') => {
     const career = CAREERS[careerId];
-    const { state, row } = startMusteringOutRoll(character, career, column, 0, Math.random);
+    // Pop one carried benefit-roll DM (e.g. from a pre-career life event "DM+2 to next benefit roll").
+    const carried = character.wizardState?.carriedDMs?.benefitRollDMs ?? [];
+    const [appliedDM, ...rest] = carried;
+    const characterAfterPop: Character = appliedDM !== undefined
+      ? {
+          ...character,
+          wizardState: {
+            ...(character.wizardState ?? { step: 'mustering_out' }),
+            carriedDMs: {
+              ...(character.wizardState?.carriedDMs ?? {}),
+              benefitRollDMs: rest,
+            },
+          },
+        }
+      : character;
+    if (appliedDM !== undefined) onChange(characterAfterPop);
+    const { state, row } = startMusteringOutRoll(characterAfterPop, career, column, appliedDM ?? 0, Math.random);
     setPhase({ kind: 'rolling', engine: state, current: { careerId, column }, rolledRow: row });
   };
+
+  const carriedBenefitDMs = character.wizardState?.carriedDMs?.benefitRollDMs ?? [];
 
   if (phase.kind === 'rolling') {
     return (
@@ -103,6 +121,12 @@ export function MusteringOutStep({
         </div>
         <div>Pension entitlement: Cr{pension.toLocaleString()} per year.</div>
         <div>Remaining benefit rolls across all careers: <strong>{totalRemaining}</strong>.</div>
+        {carriedBenefitDMs.length > 0 ? (
+          <div className="text-emerald-700">
+            Carried benefit DMs: <strong>{carriedBenefitDMs.map((d) => (d > 0 ? `+${d}` : `${d}`)).join(', ')}</strong>
+            {' '}— one is consumed automatically on your next benefit roll.
+          </div>
+        ) : null}
       </div>
 
       <ul className="space-y-3">

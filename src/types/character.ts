@@ -137,6 +137,12 @@ export type WizardState = {
   pendingPrompt?: unknown;
   /** When set, the next career-term phase is forced to this career (no qualification roll). */
   forcedNextCareer?: { career: string; assignment?: string };
+  /**
+   * When set, the next career-term phase continues the same career + assignment without
+   * a qualification roll (per rulebook: continuing in the same career skips qualification).
+   * Cleared once that term commits.
+   */
+  continueInCareer?: { career: string; assignment: string };
   /** When set, the next career-term phase routes through the draft. */
   forcedDraft?: boolean;
   /** Carry-forward DMs from the previous term. */

@@ -102,7 +102,18 @@ export function BetweenTermsStep({
             lastTerm.advancement.rolled <= character.careerHistory.filter((t) => t.career === lastTerm.career).length &&
             character.careerHistory.filter((t) => t.career === lastTerm.career).length > 0 &&
             !mustContinue}
-          onClick={onContinueSame}
+          onClick={() => {
+            // Mark the continuation so CareerTermStep skips the career picker and qualification roll.
+            onChange({
+              ...character,
+              wizardState: {
+                ...wizard,
+                continueInCareer: { career: lastTerm.career, assignment: lastTerm.assignment },
+                step: 'career_term',
+              },
+            });
+            onContinueSame();
+          }}
           className="px-3 py-2 rounded border border-gray-300 hover:bg-gray-50 disabled:opacity-50 text-left"
         >
           <div className="font-medium text-sm">Continue same assignment</div>
@@ -113,7 +124,18 @@ export function BetweenTermsStep({
 
         <button
           disabled={ejectedOrForced || mustContinue}
-          onClick={onChangeAssignment}
+          onClick={() => {
+            // Stay in career, pick a new assignment — re-qualification applies per rules.
+            onChange({
+              ...character,
+              wizardState: {
+                ...wizard,
+                continueInCareer: undefined,
+                step: 'career_term',
+              },
+            });
+            onChangeAssignment();
+          }}
           className="px-3 py-2 rounded border border-gray-300 hover:bg-gray-50 disabled:opacity-50 text-left"
         >
           <div className="font-medium text-sm">Change assignment</div>
@@ -122,7 +144,17 @@ export function BetweenTermsStep({
 
         <button
           disabled={mustContinue}
-          onClick={onChangeCareer}
+          onClick={() => {
+            onChange({
+              ...character,
+              wizardState: {
+                ...wizard,
+                continueInCareer: undefined,
+                step: 'career_term',
+              },
+            });
+            onChangeCareer();
+          }}
           className="px-3 py-2 rounded border border-gray-300 hover:bg-gray-50 disabled:opacity-50 text-left"
         >
           <div className="font-medium text-sm">Change career</div>

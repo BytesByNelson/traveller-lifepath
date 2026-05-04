@@ -140,13 +140,24 @@ export type Prompt =
       text: string;
     };
 
-export const blankEngineState = (character: Character): EngineState => ({
-  character,
-  queue: [],
-  context: [],
-  pendingDMs: { benefitRollDMs: [] },
-  flags: {},
-});
+export const blankEngineState = (character: Character): EngineState => {
+  // Hydrate pendingDMs from any carried-forward DMs left on the character — these come
+  // from previous engine sessions (e.g. a pre-career event grants DM+2 to next benefit
+  // roll, but mustering-out happens many sessions later).
+  const carried = character.wizardState?.carriedDMs;
+  return {
+    character,
+    queue: [],
+    context: [],
+    pendingDMs: {
+      benefitRollDMs: carried?.benefitRollDMs ? [...carried.benefitRollDMs] : [],
+      ...(typeof carried?.nextSurvival === 'number' ? { nextSurvival: carried.nextSurvival } : {}),
+      ...(typeof carried?.nextAdvancement === 'number' ? { nextAdvancement: carried.nextAdvancement } : {}),
+      ...(typeof carried?.nextQualification === 'number' ? { nextQualification: carried.nextQualification } : {}),
+    },
+    flags: {},
+  };
+};
 
 /* ─────────────── Public API ─────────────── */
 
@@ -171,13 +182,28 @@ export const drain = (state: EngineState, rng: Rng = defaultRng): EngineState =>
   while (!s.prompt && s.queue.length > 0) {
     s = step(s, rng);
   }
+  // Mirror pendingDMs back onto the character so they survive when this engine state is
+  // discarded — e.g., a DM+2 from a pre-career life event needs to wait until mustering-out.
+  s = { ...s, character: writeCarriedDMs(s.character, s.pendingDMs) };
   debug('engine', 'drain →', {
     context: s.context.at(-1),
     prompt: s.prompt?.kind,
     queueLength: s.queue.length,
+    pendingDMs: s.pendingDMs,
     rollLogTail: s.character.rollLog.slice(-3).map((r) => ({ context: r.context, natural: r.natural, result: r.result, success: r.success })),
   });
   return s;
+};
+
+/** Write pendingDMs onto character.wizardState.carriedDMs so they persist across engine sessions. */
+const writeCarriedDMs = (c: Character, pending: EngineState['pendingDMs']): Character => {
+  const existing = c.wizardState ?? { step: 'basics' };
+  const carriedDMs: NonNullable<Character['wizardState']>['carriedDMs'] = {};
+  if (typeof pending.nextSurvival === 'number') carriedDMs.nextSurvival = pending.nextSurvival;
+  if (typeof pending.nextAdvancement === 'number') carriedDMs.nextAdvancement = pending.nextAdvancement;
+  if (typeof pending.nextQualification === 'number') carriedDMs.nextQualification = pending.nextQualification;
+  if (pending.benefitRollDMs.length > 0) carriedDMs.benefitRollDMs = [...pending.benefitRollDMs];
+  return { ...c, wizardState: { ...existing, carriedDMs } };
 };
 
 /** Advance by one effect. Caller must resolve prompts before stepping again. */
@@ -236,9 +262,17 @@ export const resolveCheck = (
   else branch.push(...effect.onFailure);
   if (natural === 2 && effect.onNaturalTwo) branch.push(...effect.onNaturalTwo);
 
+  // Consume any pending DM that just applied to this check, so it doesn't carry forward.
+  const ctx = state.context.at(-1) ?? '';
+  const pendingAfter = { ...state.pendingDMs };
+  if (/qualification/i.test(ctx)) delete pendingAfter.nextQualification;
+  else if (/survival/i.test(ctx)) delete pendingAfter.nextSurvival;
+  else if (/advancement/i.test(ctx)) delete pendingAfter.nextAdvancement;
+
   const after: EngineState = {
     ...state,
     character: { ...state.character, rollLog: [...state.character.rollLog, log] },
+    pendingDMs: pendingAfter,
     prompt: undefined,
     queue: [...branch, ...state.queue],
   };
@@ -795,11 +829,20 @@ const resolveCount = (count: { fixed: number } | { dice: '1D' | '2D' | 'D3' } | 
 
 const computeCheckDMs = (state: EngineState, roll: RollCheck): { source: string; value: number }[] => {
   // During creation, no skill DMs are added except where rules explicitly do (they don't on character-creation checks).
-  // We surface only the queued situational DMs where they're relevant.
+  // We surface the relevant char DM plus any queued situational DM that matches this check.
   const dms: { source: string; value: number }[] = [];
   if (roll.kind === 'char') {
     const dm = charDM(state.character, roll.char);
     if (dm !== 0) dms.push({ source: `${roll.char} DM`, value: dm });
+  }
+  const ctx = state.context.at(-1) ?? '';
+  const pending = state.pendingDMs;
+  if (/qualification/i.test(ctx) && typeof pending.nextQualification === 'number' && pending.nextQualification !== 0) {
+    dms.push({ source: 'Carried DM', value: pending.nextQualification });
+  } else if (/survival/i.test(ctx) && typeof pending.nextSurvival === 'number' && pending.nextSurvival !== 0) {
+    dms.push({ source: 'Carried DM', value: pending.nextSurvival });
+  } else if (/advancement/i.test(ctx) && typeof pending.nextAdvancement === 'number' && pending.nextAdvancement !== 0) {
+    dms.push({ source: 'Carried DM', value: pending.nextAdvancement });
   }
   return dms;
 };

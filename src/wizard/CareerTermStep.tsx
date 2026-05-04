@@ -117,6 +117,30 @@ export function CareerTermStep({
     if (autoEntry && character.careerHistory.length === 0) {
       return { kind: 'pick_assignment', careerId: autoEntry.career as CareerId };
     }
+    // Continuing in the same career & assignment skips the picker and qualification.
+    const cont = character.wizardState?.continueInCareer;
+    if (cont) {
+      const seed = seedFromHistory(character, cont.career as CareerId);
+      return {
+        kind: 'basic_training',
+        ctx: {
+          careerId: cont.career as CareerId,
+          assignmentId: cont.assignment,
+          qualified: true,
+          isOfficer: seed.isOfficer,
+          rankAtEnd: seed.rankAtEnd,
+          ejected: false,
+          mustContinue: false,
+          commissionAttempted: false,
+          advancementAttempted: false,
+          advancementSuccess: undefined,
+          advancementRolled: undefined,
+          skillTableRolls: [],
+          survivalSuccess: undefined,
+          survivalRolled: undefined,
+        },
+      };
+    }
     return { kind: 'pick_career' };
   });
   const setPhase = (p: Phase) => {
@@ -174,6 +198,14 @@ export function CareerTermStep({
           ...next.wizardState,
           preCareerBonus: rest,
         },
+      };
+    }
+    // continueInCareer is a single-term hint — clear it now so the next between-terms
+    // step gets a clean slate.
+    if (next.wizardState?.continueInCareer) {
+      next = {
+        ...next,
+        wizardState: { ...next.wizardState, continueInCareer: undefined },
       };
     }
     onTermComplete(next);
@@ -464,6 +496,9 @@ export function CareerTermStep({
                   disabled={locked}
                   onClick={() => {
                     const { state, rolled } = startSkillTableRoll(character, phase.ctx.careerId, phase.ctx.assignmentId, t.id, Math.random);
+                    // Sync engine character to parent so the skill/stat bumps applied by the
+                    // skill-table effect are persisted before later phases read `character`.
+                    onChange(state.character);
                     setPhase({
                       kind: 'rolling_skill_table',
                       ctx: phase.ctx,
