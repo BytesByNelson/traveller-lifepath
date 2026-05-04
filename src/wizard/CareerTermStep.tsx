@@ -27,6 +27,7 @@ import { ConnectionBonusPicker } from './ConnectionBonusPicker';
 import { summarizeEffect } from '../components/effectPreview';
 import { CareerInfoCard } from '../components/CareerInfo';
 import type { SkillTableRow } from '../types';
+import { debug } from '../debug';
 
 /** Working state of a term as it's being resolved. Becomes a CareerTerm at commit. */
 type TermCtx = {
@@ -46,12 +47,17 @@ type TermCtx = {
   survivalRolled: number | undefined;
 };
 
-const newCtx = (careerId: CareerId, assignmentId: string, qualified: boolean): TermCtx => ({
+const newCtx = (
+  careerId: CareerId,
+  assignmentId: string,
+  qualified: boolean,
+  seed: { isOfficer: boolean; rankAtEnd: number },
+): TermCtx => ({
   careerId,
   assignmentId,
   qualified,
-  isOfficer: false,
-  rankAtEnd: 0,
+  isOfficer: seed.isOfficer,
+  rankAtEnd: seed.rankAtEnd,
   ejected: false,
   mustContinue: false,
   commissionAttempted: false,
@@ -62,6 +68,18 @@ const newCtx = (careerId: CareerId, assignmentId: string, qualified: boolean): T
   survivalSuccess: undefined,
   survivalRolled: undefined,
 });
+
+/**
+ * Carry over officer status and highest rank from previous terms in the same career.
+ * Once you've been commissioned you stay an officer; rank persists across terms.
+ */
+const seedFromHistory = (character: Character, careerId: CareerId): { isOfficer: boolean; rankAtEnd: number } => {
+  const priorTerms = character.careerHistory.filter((t) => t.career === careerId);
+  if (priorTerms.length === 0) return { isOfficer: false, rankAtEnd: 0 };
+  const isOfficer = priorTerms.some((t) => t.isOfficer);
+  const rankAtEnd = Math.max(0, ...priorTerms.map((t) => t.rankAtEnd));
+  return { isOfficer, rankAtEnd };
+};
 
 type Phase =
   | { kind: 'pick_career' }
@@ -90,12 +108,16 @@ export function CareerTermStep({
   onBack: () => void;
   onTermComplete: (next: Character) => void;
 }) {
-  const [phase, setPhase] = useState<Phase>(() => {
+  const [phase, _setPhase] = useState<Phase>(() => {
     const forced = character.wizardState?.forcedNextCareer;
     return forced
       ? { kind: 'pick_assignment', careerId: forced.career as CareerId }
       : { kind: 'pick_career' };
   });
+  const setPhase = (p: Phase) => {
+    debug('wizard:career-term', 'phase →', p.kind, p);
+    _setPhase(p);
+  };
   const [focusedCareer, setFocusedCareer] = useState<CareerId | undefined>(undefined);
   const [careerDetailsOpen, setCareerDetailsOpen] = useState(true);
 
@@ -259,12 +281,13 @@ export function CareerTermStep({
             <li key={a.id}>
               <button
                 onClick={() => {
+                  const seed = seedFromHistory(character, c.id);
                   const { state, auto } = startQualification(character, c.id, Math.random);
                   if (auto) {
                     onChange(state.character);
-                    setPhase({ kind: 'basic_training', ctx: newCtx(c.id, a.id, true) });
+                    setPhase({ kind: 'basic_training', ctx: newCtx(c.id, a.id, true, seed) });
                   } else {
-                    setPhase({ kind: 'qualify', ctx: newCtx(c.id, a.id, false), engine: state });
+                    setPhase({ kind: 'qualify', ctx: newCtx(c.id, a.id, false, seed), engine: state });
                   }
                 }}
                 className="w-full text-left px-3 py-2 rounded border border-gray-300 hover:bg-gray-50"

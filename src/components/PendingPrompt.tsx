@@ -4,6 +4,7 @@ import {
   candidateSkillsForPrompt,
   resolveCheck,
   resolveChoice,
+  resolveConvertConnection,
   resolveNameConnection,
   resolvePickCatalogueItem,
   resolvePickChar,
@@ -102,6 +103,9 @@ export function PendingPrompt({ state, onUpdate }: Props) {
 
     case 'name_connection':
       return <NameConnectionPrompt state={state} onUpdate={onUpdate} />;
+
+    case 'convert_connection':
+      return <ConvertConnectionPrompt state={state} onUpdate={onUpdate} />;
 
     case 'wager_benefit_rolls':
       return <WagerPrompt state={state} onUpdate={onUpdate} />;
@@ -275,6 +279,56 @@ function PickSkillPrompt({ state, onUpdate }: Props) {
     </div>
   );
 }
+
+function ConvertConnectionPrompt({ state, onUpdate }: Props) {
+  const p = state.prompt;
+  const [chosenId, setChosenId] = useState<string | undefined>(undefined);
+  if (p?.kind !== 'convert_connection') return null;
+  const selected = chosenId ?? p.convertibles[0]?.id;
+  return (
+    <div className="border border-gray-300 rounded-lg p-4 bg-white space-y-3">
+      <h3 className="font-semibold">{p.title}</h3>
+      <p className="text-sm text-gray-600">
+        Pick one existing connection to convert. They'll move from their current bucket to the type you choose.
+      </p>
+      <div>
+        <label className="text-xs text-gray-600 block mb-1">Connection</label>
+        <select
+          value={selected ?? ''}
+          onChange={(e) => setChosenId(e.target.value)}
+          className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+        >
+          {p.convertibles.map((c) => (
+            <option key={c.id} value={c.id}>
+              {labelConnection(c)}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div>
+        <label className="text-xs text-gray-600 block mb-1">Convert to</label>
+        <div className="flex gap-2">
+          {p.targetTypes.map((t) => (
+            <button
+              key={t}
+              type="button"
+              disabled={!selected}
+              onClick={() => selected && onUpdate(resolveConvertConnection(state, selected, t))}
+              className="px-3 py-1.5 rounded border border-gray-300 hover:bg-gray-50 text-sm capitalize disabled:opacity-50"
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const labelConnection = (c: { type: string; description: string; linkedTraveller?: string }): string => {
+  const name = c.description?.trim() || c.linkedTraveller?.trim() || `(unnamed ${c.type})`;
+  return `${c.type}: ${name}`;
+};
 
 function NameConnectionPrompt({ state, onUpdate }: Props) {
   const p = state.prompt;

@@ -10,6 +10,7 @@ import {
   type EngineState,
 } from '../engine';
 import { PendingPrompt } from '../components/PendingPrompt';
+import { debug } from '../debug';
 
 type Track = 'university' | 'army' | 'marine' | 'navy';
 
@@ -42,7 +43,11 @@ export function PreCareerEducationStep({
   onSkip: () => void;
   onComplete: () => void;
 }) {
-  const [phase, setPhase] = useState<Phase>({ kind: 'choose' });
+  const [phase, _setPhase] = useState<Phase>({ kind: 'choose' });
+  const setPhase = (p: Phase) => {
+    debug('wizard:precareer', 'phase →', p.kind, p);
+    _setPhase(p);
+  };
   const termIndex = character.careerHistory.length;
 
   if (phase.kind === 'choose') {
@@ -196,6 +201,7 @@ export function PreCareerEducationStep({
             <button
               onClick={() => {
                 const event = startPreCareerEvent(character, Math.random);
+                onChange(event.character);
                 setPhase({ kind: 'event', track: phase.track, engine: event });
               }}
               className="px-4 py-2 rounded bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700"
@@ -501,8 +507,13 @@ const lastTargetedRoll = (c: Character): RollLogEntry | undefined =>
   c.rollLog.filter((r) => r.target !== undefined).at(-1);
 
 const lastEventRoll = (c: Character): number | undefined => {
-  const entry = [...c.rollLog].reverse().find((r) => r.context.startsWith('Pre-career event →'));
-  return entry?.natural ?? entry?.result;
+  // Match only the original 2D event roll, not sub-rolls that nest inside an event
+  // (those carry the same context prefix because the engine joins the context stack).
+  for (let i = c.rollLog.length - 1; i >= 0; i--) {
+    const m = c.rollLog[i]!.context.match(/^Pre-career event → (\d+)$/);
+    if (m) return Number(m[1]);
+  }
+  return undefined;
 };
 
 function entrySuccessSummary(track: Track): string {

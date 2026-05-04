@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react';
 import type { Character } from '../types';
+import { debug } from '../debug';
 import {
   deleteCharacter as deleteFromStorage,
   loadAllCharacters,
@@ -97,10 +98,25 @@ export const resetStoreForTesting = (): void => {
 
 export const upsertCharacter = (c: Character): void => {
   ensureLoaded();
+  const prev = cache.characters.get(c.id);
   cache.characters.set(c.id, c);
   saveCharacter(c);
   invalidateListSnapshot();
   emit();
+  debug('store', 'upsert', {
+    id: c.id,
+    rollLogDelta: c.rollLog.length - (prev?.rollLog.length ?? 0),
+    rollLogTail: c.rollLog.slice(-3).map((r) => ({ context: r.context, natural: r.natural, result: r.result, success: r.success })),
+    chars: c.characteristics,
+    skillCount: c.backgroundSkills.length,
+    connections: {
+      contacts: c.connections.contacts.length,
+      allies: c.connections.allies.length,
+      rivals: c.connections.rivals.length,
+      enemies: c.connections.enemies.length,
+    },
+    wizardStep: c.wizardState?.step,
+  });
 };
 
 export const deleteCharacter = (id: string): void => {

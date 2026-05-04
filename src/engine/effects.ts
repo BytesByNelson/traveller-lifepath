@@ -15,6 +15,7 @@ import { assertNever } from '../types';
 import { computeNewSkillLevel, capCharValue } from './cap';
 import { charDM } from './selectors';
 import { roll1d, roll2d, rollSpec, type Rng, defaultRng } from './dice';
+import { debug } from '../debug';
 import {
   AGING_TABLE,
   CAREERS,
@@ -107,6 +108,14 @@ export type Prompt =
       title: string;
     }
   | {
+      kind: 'convert_connection';
+      title: string;
+      /** Connections currently held that can be converted (filtered by `from` type). */
+      convertibles: Connection[];
+      /** Types the player can convert to. */
+      targetTypes: ConnectionType[];
+    }
+  | {
       kind: 'wager_benefit_rolls';
       effect: Extract<Effect, { type: 'wager_benefit_rolls' }>;
       title: string;
@@ -162,6 +171,12 @@ export const drain = (state: EngineState, rng: Rng = defaultRng): EngineState =>
   while (!s.prompt && s.queue.length > 0) {
     s = step(s, rng);
   }
+  debug('engine', 'drain →', {
+    context: s.context.at(-1),
+    prompt: s.prompt?.kind,
+    queueLength: s.queue.length,
+    rollLogTail: s.character.rollLog.slice(-3).map((r) => ({ context: r.context, natural: r.natural, result: r.result, success: r.success })),
+  });
   return s;
 };
 
@@ -170,6 +185,7 @@ export const step = (state: EngineState, rng: Rng = defaultRng): EngineState => 
   if (state.prompt) throw new Error('Cannot step while a prompt is pending');
   const [head, ...rest] = state.queue;
   if (!head) return state;
+  debug('engine', 'apply', head.type, 'context:', state.context.at(-1));
   const s: EngineState = { ...state, queue: rest };
   return apply(s, head, rng);
 };
@@ -181,6 +197,7 @@ export const resolveChoice = (state: EngineState, optionIndex: number, rng: Rng 
   if (state.prompt?.kind !== 'choice') throw new Error('Not waiting on a choice');
   const option = state.prompt.effect.options[optionIndex];
   if (!option) throw new Error(`Bad option index ${optionIndex}`);
+  debug('resolve', 'choice', { picked: option.label });
   const after: EngineState = { ...state, prompt: undefined, queue: [...option.effects, ...state.queue] };
   return drain(after, rng);
 };
@@ -202,6 +219,7 @@ export const resolveCheck = (
   if (state.prompt?.kind !== 'check') throw new Error('Not waiting on a check');
   const effect = state.prompt.effect;
   const success = modifiedTotal >= effect.roll.target;
+  debug('resolve', 'check', { natural, total: modifiedTotal, target: effect.roll.target, success, source, context: state.context.at(-1) });
   const log: RollLogEntry = {
     id: crypto.randomUUID(),
     ts: Date.now(),
@@ -227,10 +245,59 @@ export const resolveCheck = (
   return drain(after, rng);
 };
 
+/**
+ * Resolve a convert_connection prompt by moving the chosen connection from its
+ * current bucket to the chosen target bucket and updating its type.
+ */
+export const resolveConvertConnection = (
+  state: EngineState,
+  connectionId: string,
+  to: ConnectionType,
+  rng: Rng = defaultRng,
+): EngineState => {
+  if (state.prompt?.kind !== 'convert_connection') throw new Error('Not waiting on convert_connection');
+  debug('resolve', 'convert_connection', { connectionId, to });
+  const c = state.character;
+  let connection: Connection | undefined;
+  let nextConns = c.connections;
+  for (const bucket of ['contacts', 'allies', 'rivals', 'enemies'] as const) {
+    const found = nextConns[bucket].find((x) => x.id === connectionId);
+    if (found) {
+      connection = found;
+      nextConns = { ...nextConns, [bucket]: nextConns[bucket].filter((x) => x.id !== connectionId) };
+      break;
+    }
+  }
+  if (!connection) throw new Error(`Connection ${connectionId} not found`);
+  const moved: Connection = { ...connection, type: to };
+  const targetBucket = bucketFor(to);
+  nextConns = { ...nextConns, [targetBucket]: [...nextConns[targetBucket], moved] };
+  const after: EngineState = {
+    ...state,
+    character: { ...c, connections: nextConns },
+    prompt: undefined,
+  };
+  return drain(after, rng);
+};
+
+const bucketFor = (t: ConnectionType): 'contacts' | 'allies' | 'rivals' | 'enemies' =>
+  t === 'contact' ? 'contacts' : t === 'ally' ? 'allies' : t === 'rival' ? 'rivals' : 'enemies';
+
+const listConvertibleConnections = (c: Character, fromTypes: readonly ConnectionType[]): Connection[] => {
+  const all: Connection[] = [
+    ...c.connections.contacts,
+    ...c.connections.allies,
+    ...c.connections.rivals,
+    ...c.connections.enemies,
+  ];
+  return all.filter((x) => fromTypes.includes(x.type));
+};
+
 /** Resolve a pick_skill prompt by committing a SkillEntry. */
 export const resolvePickSkill = (state: EngineState, ref: SkillRef, rng: Rng = defaultRng): EngineState => {
   if (state.prompt?.kind !== 'pick_skill') throw new Error('Not waiting on pick_skill');
   const p = state.prompt;
+  debug('resolve', 'pick_skill', { picked: ref, level: p.level, hasFollowUp: !!p.followUpCheck });
   const granted = grantSkill({ ...state, prompt: undefined }, ref, p.level, p.source);
   // If the prompt asked for a follow-up check on the picked skill, queue it now so the
   // engine pauses on the check next.
@@ -539,9 +606,30 @@ const apply = (state: EngineState, e: Effect, rng: Rng): EngineState => {
           title: state.context.at(-1) ?? 'Choose connection type',
         },
       };
-    case 'convert_connection':
-      // Surfaced as a UI step; for the engine, leave it as a manual NOP that the wizard handles.
-      return { ...state, prompt: { kind: 'note', text: 'Manually convert one Contact/Ally to a Rival/Enemy (or gain a new one if none).' } };
+    case 'convert_connection': {
+      const convertibles = listConvertibleConnections(state.character, e.from);
+      if (convertibles.length === 0) {
+        // No matching connection — fall through to gaining a new one (orGainNew is always true today).
+        return {
+          ...state,
+          prompt: {
+            kind: 'pick_connection_type',
+            choices: [...e.to],
+            count: 1,
+            title: state.context.at(-1) ?? 'Gain a new connection',
+          },
+        };
+      }
+      return {
+        ...state,
+        prompt: {
+          kind: 'convert_connection',
+          title: state.context.at(-1) ?? 'Convert a connection',
+          convertibles,
+          targetTypes: [...e.to],
+        },
+      };
+    }
     case 'gain_benefit_rolls':
       return { ...state, flags: { ...state.flags, benefitRollsDelta: (state.flags.benefitRollsDelta ?? 0) + e.count } };
     case 'lose_benefit_rolls':
