@@ -193,9 +193,63 @@ try {
     await page.waitForURL(/\/sheet\//, { timeout: 5_000 });
     record('Clone-as-new navigates to the new character sheet',
       /\/sheet\//.test(page.url()), page.url());
+
+    // ─── 11b. Catalogue picker on the editable sheet ───
+    // We're on /sheet/:id for the cloned character. Exercise the weapon and armour pickers.
+    {
+      const pickWeapon = page.locator('button:has-text("Pick weapon from catalogue")').first();
+      await pickWeapon.scrollIntoViewIfNeeded();
+      await pickWeapon.click();
+      await page.waitForSelector('[aria-label="weapon catalogue"]', { timeout: 5_000 });
+      await page.fill('input[aria-label="Search catalogue"]', 'cutlass');
+      await page.click('button:has-text("Cutlass")');
+      // Modal should close and the weapons table now contains "Cutlass".
+      await page.waitForFunction(
+        () => !document.querySelector('[aria-label="weapon catalogue"]'),
+        { timeout: 5_000 },
+      );
+      const weaponsHasCutlass = await page.locator('text=Cutlass').first().isVisible();
+      record('Catalogue picker adds a weapon to the sheet', weaponsHasCutlass);
+    }
+    {
+      const pickArmour = page.locator('button:has-text("Pick armour from catalogue")').first();
+      await pickArmour.scrollIntoViewIfNeeded();
+      await pickArmour.click();
+      await page.waitForSelector('[aria-label="armour catalogue"]', { timeout: 5_000 });
+      // Search for Mesh — short, common term
+      await page.fill('input[aria-label="Search catalogue"]', 'mesh');
+      await page.click('button:has-text("Mesh")');
+      await page.waitForFunction(
+        () => !document.querySelector('[aria-label="armour catalogue"]'),
+        { timeout: 5_000 },
+      );
+      const armourHasMesh = await page.locator('text=Mesh').first().isVisible();
+      record('Catalogue picker adds armour to the sheet', armourHasMesh);
+    }
+    {
+      // Max-TL filter sanity check — set TL=5 in the augment picker, expect no augments to appear
+      // (lowest-TL augment is TL10).
+      const pickAugment = page.locator('button:has-text("Pick augment from catalogue")').first();
+      await pickAugment.scrollIntoViewIfNeeded();
+      await pickAugment.click();
+      await page.waitForSelector('[aria-label="augment catalogue"]', { timeout: 5_000 });
+      await page.fill('input[aria-label="Max TL"]', '5');
+      // Wait a tick for the filter to apply
+      await page.waitForTimeout(150);
+      const noItemsVisible = await page.locator('text=No items match').isVisible();
+      record('Max-TL filter empties the augment list at TL5', noItemsVisible);
+      // Close the modal via the X button
+      await page.click('[aria-label="armour catalogue"] >> ..').catch(() => {});
+      // Fall back to backdrop click
+      const dialog = page.getByRole('dialog', { name: 'augment catalogue' });
+      if (await dialog.isVisible()) {
+        await page.keyboard.press('Escape').catch(() => {});
+        await dialog.locator('button[aria-label="Close"]').click().catch(() => {});
+      }
+    }
+
     // Navigate back to the list and count cards
-    await page.click('text=← Travellers');
-    await page.waitForURL((u) => u.pathname.endsWith('/') && !u.hash.includes('sheet'), { timeout: 5_000 }).catch(() => {});
+    await page.goto(URL, { waitUntil: 'networkidle' });
     await page.waitForTimeout(300);
     const cardCount = await page.locator('main ul li').count();
     record('List page shows 2 characters after clone', cardCount === 2, `${cardCount} cards`);
