@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import type { Character, SkillName } from '../types';
-import { MILITARY_ACADEMY, UNIVERSITY } from '../data';
+import type { Character, RollLogEntry, SkillName } from '../types';
+import { MILITARY_ACADEMY, PRE_CAREER_EVENTS, UNIVERSITY } from '../data';
 import {
   startMilitaryAcademyEntry,
   startMilitaryAcademyGraduation,
@@ -17,9 +17,19 @@ type Phase =
   | { kind: 'choose' }
   | { kind: 'university_skills'; level0?: SkillName; level1?: SkillName }
   | { kind: 'entry_check'; track: Track; engine: EngineState }
+  | { kind: 'entry_outcome'; track: Track; success: boolean; rollEntry: RollLogEntry }
   | { kind: 'event'; track: Track; engine: EngineState }
+  | { kind: 'event_outcome'; track: Track; eventRoll: number }
   | { kind: 'graduation_check'; track: Track; engine: EngineState }
-  | { kind: 'done' };
+  | {
+      kind: 'graduation_outcome';
+      track: Track;
+      success: boolean;
+      honours: boolean;
+      rollEntry: RollLogEntry;
+      failsafeAuto: boolean;
+    }
+  | { kind: 'done'; track: Track; success: boolean; honours: boolean };
 
 export function PreCareerEducationStep({
   character,
@@ -154,19 +164,62 @@ export function PreCareerEducationStep({
           onUpdate={(s) => {
             onChange(s.character);
             if (!s.prompt) {
-              const last = s.character.rollLog.filter((r) => r.target !== undefined).at(-1);
-              if (last?.success) {
-                const event = startPreCareerEvent(s.character, Math.random);
-                setPhase({ kind: 'event', track: phase.track, engine: event });
-              } else {
-                // Failed entry — return to chooser to allow another track or skip.
-                setPhase({ kind: 'choose' });
+              const last = lastTargetedRoll(s.character);
+              if (last) {
+                setPhase({
+                  kind: 'entry_outcome',
+                  track: phase.track,
+                  success: !!last.success,
+                  rollEntry: last,
+                });
               }
             } else {
               setPhase({ ...phase, engine: s });
             }
           }}
         />
+      </section>
+    );
+  }
+
+  if (phase.kind === 'entry_outcome') {
+    return (
+      <section className="space-y-4">
+        <h2 className="text-xl font-semibold">{trackLabel(phase.track)} — entry result</h2>
+        <RollResultCard entry={phase.rollEntry} success={phase.success} />
+        {phase.success ? (
+          <>
+            <div className="rounded border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+              <p className="font-medium">You're in!</p>
+              <p className="mt-1">{entrySuccessSummary(phase.track)}</p>
+            </div>
+            <button
+              onClick={() => {
+                const event = startPreCareerEvent(character, Math.random);
+                setPhase({ kind: 'event', track: phase.track, engine: event });
+              }}
+              className="px-4 py-2 rounded bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700"
+            >
+              Continue → Pre-career event
+            </button>
+          </>
+        ) : (
+          <>
+            <div className="rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+              <p className="font-medium">Application denied.</p>
+              <p className="mt-1">
+                You were not accepted into {trackLabel(phase.track)}. You can try a different track or skip pre-career
+                education and start a career.
+              </p>
+            </div>
+            <button
+              onClick={() => setPhase({ kind: 'choose' })}
+              className="px-4 py-2 rounded bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700"
+            >
+              Back to track selection
+            </button>
+          </>
+        )}
       </section>
     );
   }
@@ -184,19 +237,44 @@ export function PreCareerEducationStep({
             }}
           />
         ) : (
-          <button
-            onClick={() => {
-              const grad =
-                phase.track === 'university'
-                  ? startUniversityGraduation(character, Math.random)
-                  : startMilitaryAcademyGraduation(character, Math.random);
-              setPhase({ kind: 'graduation_check', track: phase.track, engine: grad });
-            }}
-            className="px-4 py-2 rounded bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700"
-          >
-            Continue → Graduation
-          </button>
+          <EventOutcomeJump
+            character={character}
+            track={phase.track}
+            onContinue={(eventRoll) => setPhase({ kind: 'event_outcome', track: phase.track, eventRoll })}
+          />
         )}
+      </section>
+    );
+  }
+
+  if (phase.kind === 'event_outcome') {
+    const row = PRE_CAREER_EVENTS.find((r) => r.roll === phase.eventRoll);
+    return (
+      <section className="space-y-4">
+        <h2 className="text-xl font-semibold">Pre-career event — result</h2>
+        <div className="rounded border border-gray-200 bg-gray-50 px-3 py-2 text-sm space-y-2">
+          <div className="text-xs uppercase tracking-wide text-gray-500">Event roll: {phase.eventRoll}</div>
+          {row ? (
+            <p className="text-gray-800">{row.text}</p>
+          ) : (
+            <p className="text-gray-700 italic">No event matched this roll.</p>
+          )}
+          <p className="text-xs text-gray-600">
+            Any effects from this event have already been applied above and recorded on your sheet.
+          </p>
+        </div>
+        <button
+          onClick={() => {
+            const grad =
+              phase.track === 'university'
+                ? startUniversityGraduation(character, Math.random)
+                : startMilitaryAcademyGraduation(character, Math.random);
+            setPhase({ kind: 'graduation_check', track: phase.track, engine: grad });
+          }}
+          className="px-4 py-2 rounded bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700"
+        >
+          Continue → Graduation roll
+        </button>
       </section>
     );
   }
@@ -210,21 +288,69 @@ export function PreCareerEducationStep({
           onUpdate={(s) => {
             onChange(s.character);
             if (!s.prompt) {
-              const last = s.character.rollLog.filter((r) => r.target !== undefined).at(-1);
-              const success = !!last?.success;
+              const last = lastTargetedRoll(s.character);
+              if (!last) return;
+              const success = !!last.success;
               const honourThreshold =
                 phase.track === 'university'
                   ? UNIVERSITY.graduationHonoursAtLeast
                   : MILITARY_ACADEMY.graduationHonoursAtLeast;
-              const honours = (last?.result ?? 0) >= honourThreshold;
-              const next = applyGraduationBenefits(s.character, phase.track, success, honours);
-              onChange(next);
-              setPhase({ kind: 'done' });
+              const honours = (last.result ?? 0) >= honourThreshold;
+              const failsafeAuto =
+                !success &&
+                phase.track !== 'university' &&
+                (last.result ?? 0) >= MILITARY_ACADEMY.failsafeAutoEntryFloor;
+              setPhase({
+                kind: 'graduation_outcome',
+                track: phase.track,
+                success,
+                honours,
+                rollEntry: last,
+                failsafeAuto,
+              });
             } else {
               setPhase({ ...phase, engine: s });
             }
           }}
         />
+      </section>
+    );
+  }
+
+  if (phase.kind === 'graduation_outcome') {
+    const benefits = describeGraduationBenefits(phase.track, phase.success, phase.honours, phase.failsafeAuto);
+    const tone = phase.success
+      ? phase.honours
+        ? 'border-amber-300 bg-amber-50 text-amber-900'
+        : 'border-emerald-200 bg-emerald-50 text-emerald-900'
+      : phase.failsafeAuto
+        ? 'border-blue-200 bg-blue-50 text-blue-900'
+        : 'border-rose-200 bg-rose-50 text-rose-900';
+    return (
+      <section className="space-y-4">
+        <h2 className="text-xl font-semibold">{trackLabel(phase.track)} — graduation result</h2>
+        <RollResultCard entry={phase.rollEntry} success={phase.success} />
+        <div className={`rounded border px-3 py-2 text-sm space-y-2 ${tone}`}>
+          <p className="font-medium">{benefits.headline}</p>
+          {benefits.lines.length > 0 ? (
+            <ul className="list-disc pl-5 space-y-0.5">
+              {benefits.lines.map((line, i) => (
+                <li key={i}>{line}</li>
+              ))}
+            </ul>
+          ) : null}
+          {benefits.followup ? <p className="mt-1">{benefits.followup}</p> : null}
+        </div>
+        <button
+          onClick={() => {
+            const next = applyGraduationBenefits(character, phase.track, phase.success, phase.honours);
+            onChange(next);
+            setPhase({ kind: 'done', track: phase.track, success: phase.success, honours: phase.honours });
+          }}
+          className="px-4 py-2 rounded bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700"
+        >
+          Continue → Career term
+        </button>
       </section>
     );
   }
@@ -239,6 +365,59 @@ export function PreCareerEducationStep({
         Continue → Career term
       </button>
     </section>
+  );
+}
+
+/** Renders a Continue button after the event resolves silently — passes the rolled total upward. */
+function EventOutcomeJump({
+  character,
+  track: _track,
+  onContinue,
+}: {
+  character: Character;
+  track: Track;
+  onContinue: (eventRoll: number) => void;
+}) {
+  // Recover the event roll from the most recent rollLog entry tagged "Pre-career event → N".
+  const eventRoll = lastEventRoll(character) ?? 0;
+  return (
+    <button
+      onClick={() => onContinue(eventRoll)}
+      className="px-4 py-2 rounded bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700"
+    >
+      Continue → Event result
+    </button>
+  );
+}
+
+function RollResultCard({ entry, success }: { entry: RollLogEntry; success: boolean }) {
+  const target = entry.target ?? 0;
+  const result = entry.result;
+  const natural = entry.natural ?? result;
+  const dms = entry.dms ?? [];
+  const dmTotal = dms.reduce((acc, d) => acc + d.value, 0);
+  return (
+    <div
+      className={`rounded border px-3 py-2 text-sm ${
+        success ? 'border-emerald-300 bg-emerald-50' : 'border-rose-300 bg-rose-50'
+      }`}
+    >
+      <div className="flex items-baseline justify-between">
+        <div>
+          <span className="font-semibold">Rolled {result}</span>
+          {dmTotal !== 0 ? (
+            <span className="text-gray-600">
+              {' '}
+              ({natural} natural{dmTotal > 0 ? ` + ${dmTotal}` : ` − ${Math.abs(dmTotal)}`} DM)
+            </span>
+          ) : null}
+          <span className="text-gray-600"> vs target {target}+</span>
+        </div>
+        <span className={`text-xs font-semibold uppercase ${success ? 'text-emerald-700' : 'text-rose-700'}`}>
+          {success ? 'Success' : 'Failure'}
+        </span>
+      </div>
+    </div>
   );
 }
 
@@ -314,6 +493,83 @@ function Picker({
 
 const trackLabel = (track: Track): string =>
   track === 'university' ? 'University' : `${track[0]!.toUpperCase()}${track.slice(1)} Academy`;
+
+const tiedCareerName = (track: Track): string =>
+  track === 'army' ? 'Army' : track === 'marine' ? 'Marine' : track === 'navy' ? 'Navy' : '';
+
+const lastTargetedRoll = (c: Character): RollLogEntry | undefined =>
+  c.rollLog.filter((r) => r.target !== undefined).at(-1);
+
+const lastEventRoll = (c: Character): number | undefined => {
+  const entry = [...c.rollLog].reverse().find((r) => r.context.startsWith('Pre-career event →'));
+  return entry?.natural ?? entry?.result;
+};
+
+function entrySuccessSummary(track: Track): string {
+  if (track === 'university') {
+    return 'You start university. Next, roll on the pre-career events table to see what happens during your studies, then attempt the graduation check.';
+  }
+  return `You're admitted to the ${trackLabel(track)}. Next, roll on the pre-career events table for life during your training, then attempt the graduation check.`;
+}
+
+function describeGraduationBenefits(
+  track: Track,
+  success: boolean,
+  honours: boolean,
+  failsafeAuto: boolean,
+): { headline: string; lines: string[]; followup?: string } {
+  if (track === 'university') {
+    if (!success) {
+      return {
+        headline: 'Did not graduate.',
+        lines: [],
+        followup: 'No university benefits. Continue to your first career.',
+      };
+    }
+    const lines = [
+      'EDU +1',
+      'Both skills you chose on entry bumped by +1',
+      `+${honours ? UNIVERSITY.graduationCareerBonusDMHonours : UNIVERSITY.graduationCareerBonusDM} DM to qualify for: Agent, Army, Marine, Navy, Scholar, Scout, Citizen (corporate), Entertainer (journalist)`,
+      honours
+        ? 'Automatic commission on first term of any military career'
+        : `+${UNIVERSITY.commissionDM} DM on commission roll for first term of any military career`,
+    ];
+    return {
+      headline: honours ? 'Graduated with honours!' : 'Graduated!',
+      lines,
+      followup: 'These bonuses kick in when you start your career.',
+    };
+  }
+  // Military Academy
+  const career = tiedCareerName(track);
+  if (success) {
+    const lines = ['EDU +1'];
+    if (honours) lines.push('SOC +1');
+    lines.push(`Auto-entry to ${career} career (no qualification roll needed)`);
+    lines.push(
+      honours
+        ? `Automatic commission on first term of ${career}`
+        : `+${MILITARY_ACADEMY.graduationBenefits.commissionDM} DM on commission roll for first term of ${career}`,
+    );
+    return {
+      headline: honours ? `Graduated ${trackLabel(track)} with honours!` : `Graduated ${trackLabel(track)}!`,
+      lines,
+      followup: `Your next career will be ${career}.`,
+    };
+  }
+  if (failsafeAuto) {
+    return {
+      headline: 'Did not graduate, but were not expelled.',
+      lines: [`Auto-entry to ${career} career (no qualification roll needed)`, 'No commission bonus on first term'],
+      followup: `Your next career will be ${career}.`,
+    };
+  }
+  return {
+    headline: 'Failed graduation.',
+    lines: [],
+    followup: 'No academy benefits. Continue to a career of your choice.',
+  };
+}
 
 function grantSkillsForUniversity(c: Character, level0: SkillName, level1: SkillName): Character {
   const list = [...c.backgroundSkills];

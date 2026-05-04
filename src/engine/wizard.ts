@@ -558,7 +558,21 @@ export const startMilitaryAcademyEntry = (
 export const startPreCareerEvent = (c: Character, rng: Rng): EngineState => {
   const { total } = roll2d(rng);
   const row = PRE_CAREER_EVENTS.find((r) => r.roll === total);
-  let state = blankEngineState(c);
+  const c2: Character = {
+    ...c,
+    rollLog: [
+      ...c.rollLog,
+      {
+        id: crypto.randomUUID(),
+        ts: Date.now(),
+        context: `Pre-career event → ${total}`,
+        natural: total,
+        result: total,
+        source: 'rng',
+      },
+    ],
+  };
+  let state = blankEngineState(c2);
   state = pushContext(state, `Pre-career event → ${total}`);
   if (row) state = enqueue(state, row.effects);
   state = drain(state, rng);
