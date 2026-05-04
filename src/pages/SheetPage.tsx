@@ -5,6 +5,7 @@ import { Sheet } from '../components/sheet/Sheet';
 import { ExportButton } from '../components/ExportButton';
 import { UndoButton } from '../components/UndoButton';
 import { RollLogViewer } from '../components/RollLogViewer';
+import { PsiTestButton } from '../components/sheet/PsiTestButton';
 
 export function SheetPage() {
   const { id } = useParams<{ id: string }>();
@@ -34,6 +35,7 @@ export function SheetPage() {
           <h1 className="text-lg md:text-xl font-semibold">{character.name || '(unnamed)'}</h1>
         </div>
         <div className="flex gap-2 flex-wrap">
+          <PsiTestButton character={character} onChange={setCharacter} />
           <UndoButton onUndo={undo} disabled={!canUndo} depth={depth} />
           <button
             onClick={() => setLogOpen(true)}

@@ -597,6 +597,53 @@ export const SKILLS: Record<SkillName, SkillDef> = {
       { name: 'Perform a systems check on battle dress', difficulty: 'average', characteristic: 'EDU', timeframe: '1D minutes' },
     ],
   },
+
+  /* ─────────────── Psionic talents (treated as skills) ─────────────── */
+
+  Telepathy: {
+    name: 'Telepathy',
+    specs: [],
+    hasParent: true,
+    notTrainable: true,
+    description:
+      'Mind-to-mind contact. Subtle by nature but can be used to crush wills bluntly. Encompasses life detection, mind link, telempathy, reading and sending thoughts, suggestion, probe, and assault. Acquired only through the Psion career or institute training.',
+  },
+
+  Clairvoyance: {
+    name: 'Clairvoyance',
+    specs: [],
+    hasParent: true,
+    notTrainable: true,
+    description:
+      'Perception at a distance — sense, clairvoyance (sight), clairaudience (hearing), clairsentience (both), and tactical awareness. Other psionics cannot detect clairvoyant activity.',
+  },
+
+  Telekinesis: {
+    name: 'Telekinesis',
+    specs: [],
+    hasParent: true,
+    notTrainable: true,
+    description:
+      'Mind over matter — moving objects at range, telekinetic punches, microkinesis for fine work, pyrokinesis for heat, and self-flight. PSI cost typically scales with mass moved.',
+  },
+
+  Awareness: {
+    name: 'Awareness',
+    specs: [],
+    hasParent: true,
+    notTrainable: true,
+    description:
+      'Fine control of one\'s own body — converting PSI to temporary STR/END boosts, fortitude (PSI armour), inspiration (DM+2 to a check), regeneration of lost characteristics, and suspended animation. Awareness powers are personal-only.',
+  },
+
+  Teleportation: {
+    name: 'Teleportation',
+    specs: [],
+    hasParent: true,
+    notTrainable: true,
+    description:
+      'Instantaneous movement of one\'s body from one point to another. Requires a known destination and respects energy/momentum laws — planetary surface jumps capped at Very Distant range with elevation changes ≤ 400 m.',
+  },
 };
 
 /** Cap during character creation. */

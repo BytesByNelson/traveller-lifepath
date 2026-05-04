@@ -6,6 +6,7 @@ import { ConnectionsBoxes } from './ConnectionsBoxes';
 import { Finances } from './Finances';
 import { HistoryNotes } from './HistoryNotes';
 import { PersonalDataFile } from './PersonalDataFile';
+import { PsionicsPanel } from './PsionicsPanel';
 import { SkillsList } from './SkillsList';
 import { TrainingBox } from './TrainingBox';
 import { Wounds } from './Wounds';
@@ -56,6 +57,7 @@ function SheetPage2({ character, onChange }: Props) {
       <div className="space-y-3">
         <Finances character={character} {...(onChange ? { onChange } : {})} />
         <Wounds character={character} {...(onChange ? { onChange } : {})} />
+        {character.psi ? <PsionicsPanel character={character} {...(onChange ? { onChange } : {})} /> : null}
         <CareersHistory character={character} />
         <HistoryNotes character={character} {...(onChange ? { onChange } : {})} />
       </div>

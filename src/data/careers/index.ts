@@ -9,6 +9,7 @@ import { merchant } from './merchant';
 import { navy } from './navy';
 import { noble } from './noble';
 import { prisoner } from './prisoner';
+import { psion } from './psion';
 import { rogue } from './rogue';
 import { scholar } from './scholar';
 import { scout } from './scout';
@@ -24,6 +25,7 @@ export const CAREERS: Record<CareerId, Career> = {
   navy,
   noble,
   prisoner,
+  psion,
   rogue,
   scholar,
   scout,

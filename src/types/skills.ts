@@ -39,7 +39,13 @@ export type SkillName =
   | 'Streetwise'
   | 'Survival'
   | 'Tactics'
-  | 'Vacc Suit';
+  | 'Vacc Suit'
+  // Psionic talents — treated as skills, each with associated powers.
+  | 'Telepathy'
+  | 'Clairvoyance'
+  | 'Telekinesis'
+  | 'Awareness'
+  | 'Teleportation';
 
 /** A reference to a skill, optionally narrowed to a specialization. */
 export type SkillRef = {

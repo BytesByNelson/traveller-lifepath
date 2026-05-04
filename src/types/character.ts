@@ -162,6 +162,11 @@ export type Character = {
   /** Cap of 3 across ALL careers. */
   cashRollsUsed: number;
 
+  /** PSI characteristic — only present for psionics-tested Travellers. Treated like a 7th char during play. */
+  psi?: { max: number; current: number };
+  /** IDs of powers the Traveller knows. Talents themselves are tracked as skills (Telepathy, etc.). */
+  psionicPowersKnown?: string[];
+
   // in-play tracking
   currentCash: number;
   equipment: Item[];

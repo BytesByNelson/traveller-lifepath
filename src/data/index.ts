@@ -10,4 +10,5 @@ export * from './pensions';
 export * from './rankBenefits';
 export * from './preCareerEducation';
 export * from './equipment';
+export * from './psionics';
 export { CAREERS, CAREER_LIST } from './careers';

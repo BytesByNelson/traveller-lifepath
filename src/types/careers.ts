@@ -13,7 +13,8 @@ export type CareerId =
   | 'rogue'
   | 'scholar'
   | 'scout'
-  | 'prisoner';
+  | 'prisoner'
+  | 'psion';
 
 export type SkillTableId =
   | 'personal_development'
