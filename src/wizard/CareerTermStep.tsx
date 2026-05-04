@@ -24,6 +24,8 @@ import {
 } from '../engine';
 import { PendingPrompt } from '../components/PendingPrompt';
 import { ConnectionBonusPicker } from './ConnectionBonusPicker';
+import { summarizeEffect } from '../components/effectPreview';
+import type { SkillTableRow } from '../types';
 
 /** Working state of a term as it's being resolved. Becomes a CareerTerm at commit. */
 type TermCtx = {
@@ -298,32 +300,52 @@ export function CareerTermStep({
     return (
       <section className="space-y-4">
         <h2 className="text-xl font-semibold">{career.name} — {phase.isExtra ? 'bonus skill (promotion)' : 'skill table'}</h2>
-        <p className="text-sm text-gray-600">Pick a table; the engine rolls 1D and applies the row.</p>
+        <p className="text-sm text-gray-600">
+          Pick a table; the engine will roll 1D and apply the row that comes up. Each table's rows are listed below so you
+          can see what's at stake.
+        </p>
         <ul className="grid grid-cols-1 gap-2">
-          {tables.map((t) => (
-            <li key={t.id}>
-              <button
-                disabled={!!t.locked}
-                onClick={() => {
-                  const { state, rolled } = startSkillTableRoll(character, phase.ctx.careerId, phase.ctx.assignmentId, t.id, Math.random);
-                  setPhase({
-                    kind: 'rolling_skill_table',
-                    ctx: phase.ctx,
-                    engine: state,
-                    tableId: t.id,
-                    rolled,
-                    isExtra: phase.isExtra,
-                  });
-                }}
-                className={`w-full text-left px-3 py-2 rounded border text-sm ${
-                  t.locked ? 'border-gray-200 text-gray-400 cursor-not-allowed' : 'border-gray-300 hover:bg-gray-50'
-                }`}
-              >
-                <div className="font-medium">{t.label}</div>
-                {t.locked ? <div className="text-xs">{t.locked}</div> : null}
-              </button>
-            </li>
-          ))}
+          {tables.map((t) => {
+            const rows = lookupTableRows(career, phase.ctx.assignmentId, t.id);
+            const locked = !!t.locked;
+            return (
+              <li key={t.id}>
+                <button
+                  disabled={locked}
+                  onClick={() => {
+                    const { state, rolled } = startSkillTableRoll(character, phase.ctx.careerId, phase.ctx.assignmentId, t.id, Math.random);
+                    setPhase({
+                      kind: 'rolling_skill_table',
+                      ctx: phase.ctx,
+                      engine: state,
+                      tableId: t.id,
+                      rolled,
+                      isExtra: phase.isExtra,
+                    });
+                  }}
+                  className={`w-full text-left px-3 py-3 rounded border text-sm ${
+                    locked
+                      ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed'
+                      : 'border-gray-300 hover:border-indigo-400 hover:bg-indigo-50'
+                  }`}
+                >
+                  <div className="font-medium text-gray-900">{t.label}</div>
+                  {locked ? (
+                    <div className="text-xs text-red-600 mt-0.5">{t.locked}</div>
+                  ) : (
+                    <ul className="mt-2 grid grid-cols-2 gap-x-3 gap-y-0.5 text-xs text-gray-700">
+                      {rows.map((r) => (
+                        <li key={r.roll} className="font-mono">
+                          <span className="text-gray-500">{r.roll}.</span>{' '}
+                          <span className="font-sans">{summarizeEffect(r.effect)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </button>
+              </li>
+            );
+          })}
         </ul>
       </section>
     );
@@ -331,17 +353,30 @@ export function CareerTermStep({
 
   /* ─────── rolling skill table ─────── */
   if (phase.kind === 'rolling_skill_table') {
+    const rolledRow = lookupTableRows(career, phase.ctx.assignmentId, phase.tableId).find(
+      (r) => r.roll === phase.rolled,
+    );
+    const tableLabel = skillTableLabel(phase.tableId);
     return (
       <section className="space-y-4">
-        <h2 className="text-xl font-semibold">{career.name} — rolled {phase.rolled}</h2>
+        <h2 className="text-xl font-semibold">{career.name} — {tableLabel}</h2>
+        <div className="rounded border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm space-y-1">
+          <div className="text-xs uppercase tracking-wide text-emerald-700">1D rolled: {phase.rolled}</div>
+          <div className="text-emerald-900">
+            Result: <span className="font-medium">{rolledRow ? summarizeEffect(rolledRow.effect) : '—'}</span>
+          </div>
+        </div>
         {phase.engine.prompt ? (
-          <PendingPrompt
-            state={phase.engine}
-            onUpdate={(s) => {
-              onChange(s.character);
-              setPhase({ ...phase, engine: s });
-            }}
-          />
+          <>
+            <p className="text-xs text-gray-600">This row needs a follow-up choice — resolve it below.</p>
+            <PendingPrompt
+              state={phase.engine}
+              onUpdate={(s) => {
+                onChange(s.character);
+                setPhase({ ...phase, engine: s });
+              }}
+            />
+          </>
         ) : (
           <button
             onClick={() => {
@@ -689,6 +724,32 @@ export function CareerTermStep({
 }
 
 const fmtCheck = (c: { char: string; target: number }): string => `${c.char} ${c.target}+`;
+
+const skillTableLabel = (id: SkillTableId): string => {
+  switch (id) {
+    case 'personal_development':
+      return 'Personal Development';
+    case 'service_skills':
+      return 'Service Skills';
+    case 'advanced_education':
+      return 'Advanced Education';
+    case 'officer':
+      return 'Officer';
+    case 'assignment':
+      return 'Assignment Skills';
+  }
+};
+
+function lookupTableRows(
+  career: { skillTables: { id: SkillTableId; rows: SkillTableRow[] }[]; assignments: { id: string; skillTable: SkillTableRow[] }[] },
+  assignmentId: string,
+  tableId: SkillTableId,
+): SkillTableRow[] {
+  if (tableId === 'assignment') {
+    return career.assignments.find((a) => a.id === assignmentId)?.skillTable ?? [];
+  }
+  return career.skillTables.find((t) => t.id === tableId)?.rows ?? [];
+}
 
 function ConnectionToggle({
   character,
