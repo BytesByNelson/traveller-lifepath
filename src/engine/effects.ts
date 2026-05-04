@@ -783,7 +783,7 @@ const applyCharDelta = (state: EngineState, char: CharCode, delta: number): Engi
 };
 
 const addConnection = (c: Character, conn: Connection): Character => {
-  const key = (`${conn.type}s` as 'contacts' | 'allies' | 'rivals' | 'enemies');
+  const key = bucketFor(conn.type);
   return { ...c, connections: { ...c.connections, [key]: [...c.connections[key], conn] } };
 };
 
