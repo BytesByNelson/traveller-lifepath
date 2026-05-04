@@ -5,16 +5,18 @@ import {
   resolveCheck,
   resolveChoice,
   resolveNameConnection,
+  resolvePickCatalogueItem,
   resolvePickChar,
   resolvePickConnectionType,
   resolvePickSkill,
   resolveWager,
+  skipPickCatalogueItem,
   type EngineState,
 } from '../engine';
 import { HybridDice } from './HybridDice';
-import { SKILLS } from '../data';
+import { ARMOUR, AUGMENTS, GEAR, SKILLS, WEAPONS } from '../data';
 import { SkillInfoCard } from './SkillInfo';
-import type { CharCode, ConnectionType, SkillName, SkillRef } from '../types';
+import type { ArmourDef, AugmentDef, CharCode, ConnectionType, GearDef, SkillName, SkillRef, WeaponDef } from '../types';
 
 type Props = {
   state: EngineState;
@@ -104,6 +106,9 @@ export function PendingPrompt({ state, onUpdate }: Props) {
     case 'wager_benefit_rolls':
       return <WagerPrompt state={state} onUpdate={onUpdate} />;
 
+    case 'pick_catalogue_item':
+      return <PickCatalogueItemPrompt state={state} onUpdate={onUpdate} />;
+
     case 'note':
       return (
         <div className="border border-gray-300 rounded-lg p-4 bg-amber-50">
@@ -117,6 +122,83 @@ export function PendingPrompt({ state, onUpdate }: Props) {
         </div>
       );
   }
+}
+
+function PickCatalogueItemPrompt({ state, onUpdate }: Props) {
+  const p = state.prompt;
+  if (p?.kind !== 'pick_catalogue_item') return null;
+
+  const items: Array<ArmourDef | WeaponDef | AugmentDef | GearDef> = filterCatalogue(p);
+
+  return (
+    <div className="border border-gray-300 rounded-lg p-4 bg-white space-y-2">
+      <h3 className="font-semibold">{p.title}</h3>
+      <p className="text-xs text-gray-600">
+        {items.length} item{items.length === 1 ? '' : 's'} match the constraints. Pick one to add to your sheet, or skip
+        and record it manually later.
+      </p>
+
+      {items.length === 0 ? (
+        <p className="text-sm text-gray-500 italic">
+          No catalogue items match — skip and record manually.
+        </p>
+      ) : (
+        <ul className="max-h-64 overflow-y-auto space-y-1">
+          {items.map((it) => (
+            <li key={it.id}>
+              <button
+                onClick={() => onUpdate(resolvePickCatalogueItem(state, it.id))}
+                className="w-full text-left px-3 py-2 rounded border border-gray-200 hover:border-indigo-400 hover:bg-indigo-50 text-sm"
+              >
+                <div className="font-medium">
+                  {it.name}
+                  {it.variant ? <span className="text-gray-500 ml-1">{it.variant}</span> : null}
+                </div>
+                <div className="text-xs text-gray-600">{describeItem(it)}</div>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <button
+        onClick={() => onUpdate(skipPickCatalogueItem(state))}
+        className="text-xs text-gray-500 hover:text-gray-700 underline"
+      >
+        Skip — record manually on the sheet
+      </button>
+    </div>
+  );
+}
+
+function filterCatalogue(p: Extract<EngineState['prompt'], { kind: 'pick_catalogue_item' }>): Array<ArmourDef | WeaponDef | AugmentDef | GearDef> {
+  const tlOk = (tl: number) => p.tlMax === undefined || tl <= p.tlMax;
+  const costOk = (cost: number) => p.costMax === undefined || cost <= p.costMax;
+  switch (p.category) {
+    case 'armour':
+      return ARMOUR.filter((a) => tlOk(a.tl) && costOk(a.cost));
+    case 'weapon':
+      return WEAPONS.filter((w) => {
+        if (!tlOk(w.tl) || !costOk(w.cost)) return false;
+        if (p.weaponCategories && !p.weaponCategories.includes(w.category)) return false;
+        if (p.weaponSpec && w.skillSpec !== p.weaponSpec) return false;
+        return true;
+      });
+    case 'augment':
+      return AUGMENTS.filter((a) => tlOk(a.tl) && costOk(a.cost));
+    case 'gear':
+      return GEAR.filter((g) => tlOk(g.tl) && costOk(g.cost));
+  }
+}
+
+function describeItem(it: ArmourDef | WeaponDef | AugmentDef | GearDef): string {
+  const parts: string[] = [`TL ${it.tl}`];
+  if ('protection' in it) parts.push(`Protection +${it.protection}`);
+  if ('range' in it && it.range !== 'Melee') parts.push(it.range);
+  if ('damage' in it) parts.push(it.damage);
+  if ('improvement' in it) parts.push(it.improvement);
+  parts.push(`Cr${it.cost.toLocaleString()}`);
+  return parts.join(' · ');
 }
 
 function PickSkillPrompt({ state, onUpdate }: Props) {

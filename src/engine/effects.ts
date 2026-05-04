@@ -18,6 +18,7 @@ import { roll1d, roll2d, rollSpec, type Rng, defaultRng } from './dice';
 import {
   AGING_TABLE,
   CAREERS,
+  CATALOGUE,
   INJURY_TABLE,
   LIFE_EVENTS,
   UNUSUAL_EVENTS,
@@ -100,6 +101,21 @@ export type Prompt =
   | {
       kind: 'wager_benefit_rolls';
       effect: Extract<Effect, { type: 'wager_benefit_rolls' }>;
+      title: string;
+    }
+  /**
+   * Pick an item from the catalogue to fulfil a typed mustering-out benefit.
+   * The category and filters tell the UI which catalogue to open.
+   */
+  | {
+      kind: 'pick_catalogue_item';
+      category: 'armour' | 'weapon' | 'augment' | 'gear';
+      tlMax?: number;
+      costMax?: number;
+      /** Restrict weapon picks to particular WeaponCategory values. */
+      weaponCategories?: ('melee_weapon' | 'slug_weapon' | 'energy_weapon' | 'grenade' | 'heavy_weapon')[];
+      /** Restrict melee picks to a specific Melee specialty (e.g. 'blade'). */
+      weaponSpec?: string;
       title: string;
     }
   | {
@@ -265,6 +281,100 @@ export const acknowledgeNote = (state: EngineState, rng: Rng = defaultRng): Engi
   return drain(after, rng);
 };
 
+/**
+ * Resolve a pick_catalogue_item prompt. The selected item is appended to
+ * the appropriate character array (weapons / armor / augments / equipment).
+ */
+export const resolvePickCatalogueItem = (
+  state: EngineState,
+  itemId: string,
+  rng: Rng = defaultRng,
+): EngineState => {
+  if (state.prompt?.kind !== 'pick_catalogue_item') throw new Error('Not waiting on pick_catalogue_item');
+  const entry = CATALOGUE.get(itemId);
+  if (!entry) throw new Error(`Unknown catalogue id: ${itemId}`);
+
+  const c = state.character;
+  const baseId = crypto.randomUUID();
+  let next = c;
+  switch (entry.kind) {
+    case 'armour':
+      next = {
+        ...c,
+        armor: [
+          ...c.armor,
+          {
+            id: baseId,
+            name: entry.item.name + (entry.item.variant ? ` (${entry.item.variant})` : ''),
+            description: [entry.item.description, entry.item.protectionNote].filter(Boolean).join(' · '),
+            protection: entry.item.protection,
+            tl: entry.item.tl,
+          },
+        ],
+      };
+      break;
+    case 'weapon':
+      next = {
+        ...c,
+        weapons: [
+          ...c.weapons,
+          {
+            id: baseId,
+            name: entry.item.name + (entry.item.variant ? ` (${entry.item.variant})` : ''),
+            description: entry.item.description ?? '',
+            tl: entry.item.tl,
+            range: entry.item.range,
+            damage: entry.item.damage,
+          },
+        ],
+      };
+      break;
+    case 'augment':
+      next = {
+        ...c,
+        augments: [
+          ...c.augments,
+          {
+            id: baseId,
+            name: entry.item.name + (entry.item.variant ? ` (${entry.item.variant})` : ''),
+            description: entry.item.improvement + (entry.item.description ? ` — ${entry.item.description}` : ''),
+            tl: entry.item.tl,
+          },
+        ],
+      };
+      break;
+    case 'gear':
+      next = {
+        ...c,
+        equipment: [
+          ...c.equipment,
+          {
+            id: baseId,
+            name: entry.item.name + (entry.item.variant ? ` (${entry.item.variant})` : ''),
+            description: entry.item.description ?? '',
+            tl: entry.item.tl,
+          },
+        ],
+      };
+      break;
+  }
+  const after: EngineState = { ...state, prompt: undefined, character: next };
+  return drain(after, rng);
+};
+
+/**
+ * Skip the catalogue pick — record it as a generic note instead. Useful when
+ * the player would rather pick the specific item later via the editable sheet.
+ */
+export const skipPickCatalogueItem = (state: EngineState, rng: Rng = defaultRng): EngineState => {
+  if (state.prompt?.kind !== 'pick_catalogue_item') throw new Error('Not waiting on pick_catalogue_item');
+  const after: EngineState = {
+    ...state,
+    prompt: { kind: 'note', text: `${state.prompt.title} — skipped, record on the sheet manually.` },
+  };
+  return drain(after, rng);
+};
+
 /** Resolve a wager prompt by stating how many benefit rolls were wagered + the natural/total. */
 export const resolveWager = (
   state: EngineState,
@@ -389,6 +499,7 @@ const apply = (state: EngineState, e: Effect, rng: Rng): EngineState => {
     case 'next_survival_dm':
       return { ...state, pendingDMs: { ...state.pendingDMs, nextSurvival: (state.pendingDMs.nextSurvival ?? 0) + e.dm } };
     case 'gain_benefit':
+      return applyGainBenefit(state, e);
     case 'gain_ship_share':
       return { ...state, prompt: { kind: 'note', text: `Benefit acquired: ${describeBenefit(e)}.` } };
     case 'auto_promote':
@@ -588,6 +699,89 @@ const rollOnTable = (state: EngineState, table: TableRef, rng: Rng): EngineState
       };
       return apply(state, choiceEffect, rng);
     }
+  }
+};
+
+/**
+ * Routes a `gain_benefit` to the catalogue picker for the kinds we have data
+ * for. Falls back to a note for ships, vehicles, and TAS membership.
+ */
+const applyGainBenefit = (state: EngineState, e: Extract<Effect, { type: 'gain_benefit' }>): EngineState => {
+  const b = e.benefit;
+  switch (b.type) {
+    case 'armour':
+      return {
+        ...state,
+        prompt: {
+          kind: 'pick_catalogue_item',
+          category: 'armour',
+          tlMax: b.tlLimit,
+          costMax: b.crLimit,
+          title: `Pick armour (≤ TL${b.tlLimit}, ≤ Cr${b.crLimit.toLocaleString()})`,
+        },
+      };
+    case 'blade':
+      return {
+        ...state,
+        prompt: {
+          kind: 'pick_catalogue_item',
+          category: 'weapon',
+          tlMax: b.tlLimit,
+          costMax: b.crLimit,
+          weaponCategories: ['melee_weapon'],
+          weaponSpec: 'blade',
+          title: `Pick a blade (≤ TL${b.tlLimit}, ≤ Cr${b.crLimit.toLocaleString()})`,
+        },
+      };
+    case 'gun':
+      return {
+        ...state,
+        prompt: {
+          kind: 'pick_catalogue_item',
+          category: 'weapon',
+          tlMax: b.tlLimit,
+          costMax: b.crLimit,
+          weaponCategories: ['slug_weapon', 'energy_weapon'],
+          title: `Pick a gun (≤ TL${b.tlLimit}, ≤ Cr${b.crLimit.toLocaleString()})`,
+        },
+      };
+    case 'weapon':
+      return {
+        ...state,
+        prompt: {
+          kind: 'pick_catalogue_item',
+          category: 'weapon',
+          tlMax: b.tlLimit,
+          costMax: b.crLimit,
+          weaponCategories: ['melee_weapon', 'slug_weapon', 'energy_weapon'],
+          title: `Pick a weapon (≤ TL${b.tlLimit}, ≤ Cr${b.crLimit.toLocaleString()})`,
+        },
+      };
+    case 'cybernetic_implant':
+      return {
+        ...state,
+        prompt: {
+          kind: 'pick_catalogue_item',
+          category: 'augment',
+          tlMax: b.tlLimit,
+          costMax: b.crLimit,
+          title: `Pick an augment (≤ TL${b.tlLimit}, ≤ Cr${b.crLimit.toLocaleString()})`,
+        },
+      };
+    case 'scientific_equipment':
+      return {
+        ...state,
+        prompt: {
+          kind: 'pick_catalogue_item',
+          category: 'gear',
+          tlMax: b.tlLimit,
+          costMax: b.crLimit,
+          title: `Pick scientific gear (≤ TL${b.tlLimit}, ≤ Cr${b.crLimit.toLocaleString()})`,
+        },
+      };
+    default:
+      // Ships, vehicles, TAS membership — record as a note for now.
+      return { ...state, prompt: { kind: 'note', text: `Benefit acquired: ${describeBenefit({ type: 'gain_benefit', benefit: b })}.` } };
   }
 };
 
