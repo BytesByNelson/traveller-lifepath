@@ -159,7 +159,7 @@ export const citizen: Career = {
         {
           type: 'check',
           roll: { kind: 'skill', skill: { name: 'Streetwise' }, target: 8 },
-          onSuccess: [{ type: 'gain_skill_choice', level: 1, existingOnly: true }],
+          onSuccess: [{ type: 'gain_skill_choice', existingOnly: true }],
           onFailure: [],
         },
         { type: 'eject_career' },

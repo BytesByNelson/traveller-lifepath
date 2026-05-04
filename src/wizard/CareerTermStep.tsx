@@ -25,6 +25,7 @@ import {
 import { PendingPrompt } from '../components/PendingPrompt';
 import { ConnectionBonusPicker } from './ConnectionBonusPicker';
 import { summarizeEffect } from '../components/effectPreview';
+import { CareerInfoCard } from '../components/CareerInfo';
 import type { SkillTableRow } from '../types';
 
 /** Working state of a term as it's being resolved. Becomes a CareerTerm at commit. */
@@ -95,6 +96,8 @@ export function CareerTermStep({
       ? { kind: 'pick_assignment', careerId: forced.career as CareerId }
       : { kind: 'pick_career' };
   });
+  const [focusedCareer, setFocusedCareer] = useState<CareerId | undefined>(undefined);
+  const [careerDetailsOpen, setCareerDetailsOpen] = useState(true);
 
   const termIndex = character.careerHistory.length;
   const careerId = phase.kind === 'pick_assignment' ? phase.careerId : 'ctx' in phase ? phase.ctx.careerId : null;
@@ -167,19 +170,29 @@ export function CareerTermStep({
       if (c.id === 'psion') return psionicsAvailable;
       return true;
     });
+    const focused = focusedCareer ? CAREERS[focusedCareer] : undefined;
     return (
       <section className="space-y-4">
         <h2 className="text-xl font-semibold">Term {termIndex + 1} — pick a career</h2>
+        <p className="text-sm text-gray-600">Click a career to read what it covers, then continue to assignments.</p>
         <ul className="grid grid-cols-2 gap-2">
           {visibleCareers.map((c) => {
             const dms = qualificationDMs(character, c.id);
             const total = dms.reduce((acc, d) => acc + d.value, 0);
+            const isFocused = focusedCareer === c.id;
             return (
               <li key={c.id}>
                 <button
                   disabled={c.flags?.enforcedEntry}
-                  onClick={() => setPhase({ kind: 'pick_assignment', careerId: c.id })}
-                  className="w-full text-left px-3 py-2 rounded border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={() => {
+                    setFocusedCareer(c.id);
+                    if (!careerDetailsOpen) setCareerDetailsOpen(true);
+                  }}
+                  className={`w-full text-left px-3 py-2 rounded border transition-colors ${
+                    isFocused
+                      ? 'border-indigo-500 bg-indigo-50 ring-2 ring-indigo-300 ring-offset-1'
+                      : 'border-gray-300 hover:bg-gray-50'
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
                   <div className="font-medium">{c.name}</div>
                   <div className="text-xs text-gray-600">
@@ -199,6 +212,35 @@ export function CareerTermStep({
             Psion career hidden — enable psionics in Basics, or trigger eligibility through a pre-career or unusual life event.
           </p>
         ) : null}
+
+        <details
+          open={careerDetailsOpen && !!focused}
+          onToggle={(e) => setCareerDetailsOpen((e.target as HTMLDetailsElement).open)}
+          className="rounded border border-gray-200 bg-gray-50/50 px-3 py-2"
+        >
+          <summary className="text-xs font-semibold uppercase tracking-wide text-gray-600 cursor-pointer select-none">
+            {focused ? `Career details — ${focused.name}` : 'Career details'}
+          </summary>
+          <div className="mt-3 space-y-3">
+            {focused ? (
+              <>
+                <CareerInfoCard career={focused} />
+                <button
+                  disabled={!!focused.flags?.enforcedEntry}
+                  onClick={() => setPhase({ kind: 'pick_assignment', careerId: focused.id })}
+                  className="px-4 py-2 rounded bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Continue → {focused.name} assignments
+                </button>
+              </>
+            ) : (
+              <p className="text-sm text-gray-500 italic">
+                Click any career above to read about it — qualification, assignments, service skills, mustering-out cash, and more.
+              </p>
+            )}
+          </div>
+        </details>
+
         <button onClick={onBack} className="px-4 py-2 rounded border border-gray-300 text-sm hover:bg-gray-50">
           Back
         </button>

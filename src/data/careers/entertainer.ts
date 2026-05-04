@@ -228,8 +228,8 @@ export const entertainer: Career = {
                         {
                           type: 'check',
                           roll: { kind: 'skill', skill: { name: 'Art' }, target: 8 },
-                          onSuccess: [{ type: 'gain_skill_choice', level: 1, existingOnly: true }],
-                          onFailure: [{ type: 'gain_skill_choice', level: 1, existingOnly: true }, { type: 'roll_on_table', table: { kind: 'career_mishaps', career: 'entertainer' } }],
+                          onSuccess: [{ type: 'gain_skill_choice', existingOnly: true }],
+                          onFailure: [{ type: 'gain_skill_choice', existingOnly: true }, { type: 'roll_on_table', table: { kind: 'career_mishaps', career: 'entertainer' } }],
                         },
                       ],
                     },
@@ -239,8 +239,8 @@ export const entertainer: Career = {
                         {
                           type: 'check',
                           roll: { kind: 'skill', skill: { name: 'Persuade' }, target: 8 },
-                          onSuccess: [{ type: 'gain_skill_choice', level: 1, existingOnly: true }],
-                          onFailure: [{ type: 'gain_skill_choice', level: 1, existingOnly: true }, { type: 'roll_on_table', table: { kind: 'career_mishaps', career: 'entertainer' } }],
+                          onSuccess: [{ type: 'gain_skill_choice', existingOnly: true }],
+                          onFailure: [{ type: 'gain_skill_choice', existingOnly: true }, { type: 'roll_on_table', table: { kind: 'career_mishaps', career: 'entertainer' } }],
                         },
                       ],
                     },

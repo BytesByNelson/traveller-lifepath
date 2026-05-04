@@ -214,8 +214,9 @@ function PickSkillPrompt({ state, onUpdate }: Props) {
     <div className="border border-gray-300 rounded-lg p-4 bg-white">
       <h3 className="font-semibold mb-2">{p.title}</h3>
       <p className="text-sm text-gray-600 mb-3">
-        Pick a skill to gain at level {p.level}
-        {p.existingOnly ? ' (must already have it)' : ''}.
+        {p.level === undefined
+          ? `Pick a skill to bump by +1${p.existingOnly ? ' (must already have it)' : ''}.`
+          : `Pick a skill to gain at level ${p.level}${p.existingOnly ? ' (must already have it)' : ''}.`}
       </p>
       <select
         className="px-2 py-1 border border-gray-300 rounded text-sm w-full"

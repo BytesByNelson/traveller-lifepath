@@ -134,6 +134,34 @@ describe('phase 3 — pre-career events', () => {
     if (state.prompt?.kind !== 'name_connection') throw new Error('expected name_connection');
     expect(state.prompt.type).toBe('ally');
   });
+
+  it('event 10 (overturn tutor) prompts for an existing skill on EDU 9+ success and bumps it by +1', () => {
+    let c = newCharacter('id', 'Erik', 'human');
+    c = setChar(c, { EDU: 12 });
+    // Seed a known existing skill so the prompt can offer it.
+    c = {
+      ...c,
+      backgroundSkills: [
+        { name: 'Admin', level: 1, source: { kind: 'background' } },
+      ],
+    };
+    // 2D=10 → dice (4,6).
+    const rng = scriptedRng([dieValue(4), dieValue(6)]);
+    let state = startPreCareerEvent(c, rng);
+    // First the engine pauses on the EDU check.
+    expect(state.prompt?.kind).toBe('check');
+    state = resolveCheck(state, 10, 10, undefined, 'manual');
+    // Now the engine should be on the pick_skill prompt with no fixed level (bump semantic).
+    expect(state.prompt?.kind).toBe('pick_skill');
+    if (state.prompt?.kind !== 'pick_skill') throw new Error('expected pick_skill');
+    expect(state.prompt.existingOnly).toBe(true);
+    expect(state.prompt.level).toBeUndefined();
+    state = resolvePickSkill(state, { name: 'Admin' });
+    const admin = state.character.backgroundSkills.find((s) => s.name === 'Admin');
+    expect(admin?.level).toBe(2); // bumped from 1 → 2
+    // Engine then pauses on a name_connection prompt for the new Rival.
+    expect(state.prompt?.kind).toBe('name_connection');
+  });
 });
 
 describe('phase 3 — mustering out', () => {

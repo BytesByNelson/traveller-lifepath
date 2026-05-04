@@ -75,7 +75,8 @@ export type Effect =
    */
   | {
       type: 'gain_skill_choice';
-      level: number;
+      /** Target level. Undefined means "+1 bump" (if you have it, +1; if not, gain at level 1). */
+      level?: number;
       from?: SkillRef[];
       existingOnly?: boolean;
       excludeJoat?: boolean;

@@ -166,9 +166,15 @@ export const PRE_CAREER_EVENTS: PreCareerEventRow[] = [
   },
   {
     roll: 10,
-    text: 'You overturn a tutor. Roll 9+ on a skill from this term; on success, +1 to that skill and gain the tutor as a Rival.',
+    text: 'You overturn a tutor. Roll EDU 9+ to win the academic spat; on success, +1 to a skill you already have. Either way, the tutor is now a Rival.',
     effects: [
-      { type: 'note', text: 'Player picks a skill learned this term and rolls 9+ on it.' },
+      {
+        type: 'check',
+        description: 'EDU 9+ to win the academic spat',
+        roll: { kind: 'char', char: 'EDU', target: 9 },
+        onSuccess: [{ type: 'gain_skill_choice', existingOnly: true }],
+        onFailure: [],
+      },
       { type: 'gain_connection', connection: 'rival' },
     ],
   },

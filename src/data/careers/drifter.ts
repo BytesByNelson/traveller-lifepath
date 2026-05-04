@@ -215,7 +215,7 @@ export const drifter: Career = {
         },
       ],
     },
-    { roll: 10, text: 'Edge hones abilities. +1 to a skill you already have.', effects: [{ type: 'gain_skill_choice', level: 1, existingOnly: true }] },
+    { roll: 10, text: 'Edge hones abilities. +1 to a skill you already have.', effects: [{ type: 'gain_skill_choice', existingOnly: true }] },
     { roll: 11, text: 'Forcibly drafted. Roll for the Draft next term.', effects: [{ type: 'force_draft', nextTerm: true }] },
     { roll: 12, text: 'Thrive on adversity. Auto-promote.', effects: [{ type: 'auto_promote' }] },
   ],

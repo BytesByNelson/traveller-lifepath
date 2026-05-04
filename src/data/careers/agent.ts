@@ -277,7 +277,7 @@ export const agent: Career = {
         {
           type: 'check',
           roll: { kind: 'char', char: 'EDU', target: 8 },
-          onSuccess: [{ type: 'gain_skill_choice', level: 1, existingOnly: true }],
+          onSuccess: [{ type: 'gain_skill_choice', existingOnly: true }],
           onFailure: [],
         },
       ],
