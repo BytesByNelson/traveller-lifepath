@@ -126,7 +126,14 @@ export type Effect =
       type: 'convert_connection';
       from: ConnectionType[];
       to: ConnectionType[];
-      orGainNew: true;
+      /**
+       * When true and no matching connection exists, fall through to gaining a brand-new
+       * one of the target type (used by Life Event 8, Entertainer mishap, etc. whose
+       * rulebook text explicitly says "or gain a new"). When false, the event has no
+       * effect if there's nothing to convert (matching strict RAW for events like Psion
+       * event 3 that lack an "otherwise" clause).
+       */
+      orGainNew: boolean;
     }
 
   // ─── benefit roll modifications ───────────────────────────────────

@@ -646,7 +646,17 @@ const apply = (state: EngineState, e: Effect, rng: Rng): EngineState => {
     case 'convert_connection': {
       const convertibles = listConvertibleConnections(state.character, e.from);
       if (convertibles.length === 0) {
-        // No matching connection — fall through to gaining a new one (orGainNew is always true today).
+        if (!e.orGainNew) {
+          // RAW: no Contact/Ally to convert and no "otherwise" clause → no effect.
+          return {
+            ...state,
+            prompt: {
+              kind: 'note',
+              text: `No ${e.from.join(' or ')} to convert — this event has no effect.`,
+            },
+          };
+        }
+        // Fall through to gaining a new connection of the target type.
         return {
           ...state,
           prompt: {

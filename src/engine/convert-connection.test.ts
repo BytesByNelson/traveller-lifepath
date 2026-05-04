@@ -103,4 +103,20 @@ describe('convert_connection', () => {
     // Engine then pauses on a name_connection prompt for the new rival.
     expect(state.prompt?.kind).toBe('name_connection');
   });
+
+  it('emits a no-effect note when orGainNew is false and nothing matches', () => {
+    const c = seed({
+      enemies: [{ id: 'e1', type: 'enemy', description: 'old foe' }],
+    });
+    let state: EngineState = blankEngineState(c);
+    state = enqueue(state, [
+      { type: 'convert_connection', from: ['contact', 'ally'], to: ['rival'], orGainNew: false },
+    ]);
+    state = drain(state);
+    expect(state.prompt?.kind).toBe('note');
+    if (state.prompt?.kind !== 'note') throw new Error('expected note');
+    expect(state.prompt.text).toMatch(/no effect/i);
+    // No new connection was created.
+    expect(state.character.connections.rivals).toHaveLength(0);
+  });
 });

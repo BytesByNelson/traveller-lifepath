@@ -236,8 +236,8 @@ export const psion: Career = {
     { roll: 2, text: 'Disaster!', effects: [{ type: 'roll_on_table', table: { kind: 'career_mishaps', career: 'psion' }, ejectionPolicy: 'no_eject' }] },
     {
       roll: 3,
-      text: 'Your psionic abilities make you uncomfortable to be around. One Contact or Ally becomes a Rival.',
-      effects: [{ type: 'convert_connection', from: ['contact', 'ally'], to: ['rival'], orGainNew: true }],
+      text: 'Your psionic abilities make you uncomfortable to be around. One Contact or Ally becomes a Rival. (RAW: no effect if you have no Contacts or Allies.)',
+      effects: [{ type: 'convert_connection', from: ['contact', 'ally'], to: ['rival'], orGainNew: false }],
     },
     {
       roll: 4,
