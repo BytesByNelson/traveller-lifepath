@@ -443,7 +443,14 @@ const apply = (state: EngineState, e: Effect, rng: Rng): EngineState => {
     case 'note':
       return { ...state, prompt: { kind: 'note', text: e.text } };
     case 'gain_psion_eligibility':
-      return { ...state, flags: { ...state.flags, psionEligibility: true } };
+      return {
+        ...state,
+        flags: { ...state.flags, psionEligibility: true },
+        character: {
+          ...state.character,
+          wizardState: { ...(state.character.wizardState ?? { step: 'career_term' }), psionEligibility: true },
+        },
+      };
     case 'allow_career_without_qualification':
       // Track via note for now; engine allows the wizard to bypass qualification next term if set.
       return { ...state, prompt: { kind: 'note', text: `Next term you may take ${e.career} without a qualification roll.` } };

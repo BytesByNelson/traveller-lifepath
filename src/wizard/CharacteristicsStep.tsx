@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { CHAR_CODES, type Character, type CharCode } from '../types';
 import { CHAR_NAMES, characteristicDM, SPECIES } from '../data';
 import { rollAllCharacteristics, setCharacteristic } from '../engine';
+import { roll2d } from '../engine';
 
 export function CharacteristicsStep({
   character,
@@ -15,13 +16,49 @@ export function CharacteristicsStep({
   onNext: () => void;
 }) {
   const mods = SPECIES[character.species].charModifiers;
+  const psionicsEnabled = character.wizardState?.psionicsEnabled === true;
   const [manualValues, setManualValues] = useState<Record<CharCode, string>>({
     STR: '', DEX: '', END: '', INT: '', EDU: '', SOC: '',
   });
+  const [manualPsi, setManualPsi] = useState('');
 
   const rollAll = () => onChange(rollAllCharacteristics(character, Math.random));
   const setManual = (code: CharCode, value: number) =>
     onChange(setCharacteristic(character, code, value));
+  const rollPsiOnly = () => {
+    const { total } = roll2d(Math.random);
+    const value = Math.max(0, total);
+    onChange({
+      ...character,
+      psi: { max: value, current: value },
+      rollLog: [
+        ...character.rollLog,
+        {
+          id: crypto.randomUUID(),
+          ts: Date.now(),
+          context: 'Roll PSI',
+          result: value,
+          source: 'rng',
+        },
+      ],
+    });
+  };
+  const setPsiManual = (value: number) => {
+    onChange({
+      ...character,
+      psi: { max: value, current: value },
+      rollLog: [
+        ...character.rollLog,
+        {
+          id: crypto.randomUUID(),
+          ts: Date.now(),
+          context: 'Set PSI',
+          result: value,
+          source: 'manual',
+        },
+      ],
+    });
+  };
 
   return (
     <section className="space-y-4">
@@ -29,13 +66,14 @@ export function CharacteristicsStep({
       <p className="text-sm text-gray-600">
         Roll 2D for each of the six characteristics, or enter values manually.
         Species modifiers apply automatically.
+        {psionicsEnabled ? ' PSI is rolled too — 2D at creation.' : ''}
       </p>
 
       <button
         onClick={rollAll}
         className="px-4 py-2 rounded bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700"
       >
-        Roll all (2D × 6)
+        Roll all ({psionicsEnabled ? '2D × 7' : '2D × 6'})
       </button>
 
       <table className="w-full text-sm">
@@ -96,6 +134,54 @@ export function CharacteristicsStep({
               </tr>
             );
           })}
+          {psionicsEnabled ? (
+            <tr className="border-t border-gray-200 bg-amber-50/30">
+              <td className="py-1.5 font-medium">PSI</td>
+              <td className="text-right">{character.psi?.max ?? <span className="text-gray-400">—</span>}</td>
+              <td className="text-right text-gray-400">—</td>
+              <td className="text-right font-semibold">{character.psi?.max ?? '—'}</td>
+              <td className="text-right">
+                {character.psi ? (
+                  <span className={characteristicDM(character.psi.max) < 0 ? 'text-red-600' : 'text-gray-700'}>
+                    {characteristicDM(character.psi.max) > 0 ? '+' : ''}
+                    {characteristicDM(character.psi.max)}
+                  </span>
+                ) : null}
+              </td>
+              <td className="text-right">
+                <button
+                  type="button"
+                  onClick={rollPsiOnly}
+                  className="text-xs px-2 py-0.5 border border-amber-400 bg-amber-50 rounded hover:bg-amber-100"
+                  title="Roll 2D for PSI"
+                >
+                  Roll
+                </button>
+                <input
+                  type="number"
+                  min={0}
+                  max={15}
+                  value={manualPsi}
+                  onChange={(e) => setManualPsi(e.target.value)}
+                  className="ml-1 w-12 px-1 border border-gray-300 rounded text-xs text-right"
+                  placeholder="0–15"
+                />
+                <button
+                  type="button"
+                  className="ml-1 text-xs px-2 py-0.5 border border-gray-300 rounded hover:bg-gray-50"
+                  onClick={() => {
+                    const n = Number(manualPsi);
+                    if (Number.isInteger(n) && n >= 0 && n <= 15) {
+                      setPsiManual(n);
+                      setManualPsi('');
+                    }
+                  }}
+                >
+                  Set
+                </button>
+              </td>
+            </tr>
+          ) : null}
         </tbody>
       </table>
 

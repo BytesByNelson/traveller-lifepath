@@ -111,6 +111,20 @@ export type WizardStep =
 
 export type WizardState = {
   step: WizardStep;
+  /**
+   * Set during the Basics step. When true, the wizard rolls PSI as a 7th
+   * characteristic and the Psion career is selectable. When false (default),
+   * the Psion career is hidden until something else (pre-career events row 2,
+   * Life Events 12.1, or a referee-permitted in-play test) sets the
+   * `psionEligibility` flag below.
+   */
+  psionicsEnabled?: boolean;
+  /**
+   * Set by gain_psion_eligibility effects (pre-career events / unusual events).
+   * Once true, the Psion career becomes selectable even if psionics weren't
+   * enabled at creation, and the in-play PSI test button on the sheet activates.
+   */
+  psionEligibility?: boolean;
   /** Current career term index when on career_term step. */
   currentTermIndex?: number;
   /** Most recent pending prompt for the engine — choice, check, sub-roll, etc. */

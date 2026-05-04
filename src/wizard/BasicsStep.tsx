@@ -58,6 +58,33 @@ export function BasicsStep({
         />
       </label>
 
+      <fieldset className="rounded border border-gray-300 p-3">
+        <legend className="px-2 text-sm font-medium text-gray-700">Optional rules</legend>
+        <label className="flex items-start gap-2 text-sm text-gray-800 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={character.wizardState?.psionicsEnabled === true}
+            onChange={(e) =>
+              onChange({
+                ...character,
+                wizardState: {
+                  ...(character.wizardState ?? { step: 'basics' }),
+                  psionicsEnabled: e.target.checked,
+                },
+              })
+            }
+            className="mt-0.5"
+          />
+          <span>
+            <strong>Include psionics.</strong>
+            <span className="block text-xs text-gray-600">
+              Rolls PSI as a seventh characteristic during creation, and unlocks the Psion career. Otherwise PSI stays
+              hidden until something in play (a pre-career event or unusual life event) grants eligibility.
+            </span>
+          </span>
+        </label>
+      </fieldset>
+
       <button
         onClick={onNext}
         disabled={!character.name.trim()}

@@ -155,11 +155,18 @@ export function CareerTermStep({
 
   /* ─────── pick career ─────── */
   if (phase.kind === 'pick_career') {
+    const psionicsAvailable =
+      character.wizardState?.psionicsEnabled === true ||
+      character.wizardState?.psionEligibility === true;
+    const visibleCareers = Object.values(CAREERS).filter((c) => {
+      if (c.id === 'psion') return psionicsAvailable;
+      return true;
+    });
     return (
       <section className="space-y-4">
         <h2 className="text-xl font-semibold">Term {termIndex + 1} — pick a career</h2>
         <ul className="grid grid-cols-2 gap-2">
-          {Object.values(CAREERS).map((c) => {
+          {visibleCareers.map((c) => {
             const dms = qualificationDMs(character, c.id);
             const total = dms.reduce((acc, d) => acc + d.value, 0);
             return (
@@ -182,6 +189,11 @@ export function CareerTermStep({
             );
           })}
         </ul>
+        {!psionicsAvailable ? (
+          <p className="text-xs text-gray-500 italic">
+            Psion career hidden — enable psionics in Basics, or trigger eligibility through a pre-career or unusual life event.
+          </p>
+        ) : null}
         <button onClick={onBack} className="px-4 py-2 rounded border border-gray-300 text-sm hover:bg-gray-50">
           Back
         </button>

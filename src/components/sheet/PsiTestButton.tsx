@@ -18,6 +18,14 @@ export function PsiTestButton({
 
   if (character.psi) return null;
 
+  // Only show when the character has been declared psionics-eligible — either
+  // via the creation-time toggle or via an in-play event (Life Events 12.1 /
+  // pre-career events row 2).
+  const eligible =
+    character.wizardState?.psionicsEnabled === true ||
+    character.wizardState?.psionEligibility === true;
+  if (!eligible) return null;
+
   const terms = character.careerHistory.length;
 
   const doRoll = () => {

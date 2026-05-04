@@ -76,7 +76,9 @@ export const newCharacter = (id: string, name: string, species: SpeciesId): Char
 
 /**
  * Roll all six characteristics with a single RNG. Applies species modifiers.
- * Each individual 2D roll is logged.
+ * Each individual 2D roll is logged. When the wizard's psionicsEnabled flag is
+ * set, also rolls PSI (2D − terms served, which is just 2D at creation since
+ * terms = 0) and stores it as the seventh characteristic.
  */
 export const rollAllCharacteristics = (
   c: Character,
@@ -95,10 +97,28 @@ export const rollAllCharacteristics = (
       source: 'rng',
     });
   }
+
+  const psionicsEnabled = c.wizardState?.psionicsEnabled === true;
+  let psi = c.psi;
+  if (psionicsEnabled) {
+    const { total } = roll2d(rng);
+    const terms = c.careerHistory.length;
+    const value = Math.max(0, total - terms);
+    psi = { max: value, current: value };
+    log.push({
+      id: crypto.randomUUID(),
+      ts: Date.now(),
+      context: terms > 0 ? `Roll PSI (2D − ${terms} terms)` : 'Roll PSI',
+      result: value,
+      source: 'rng',
+    });
+  }
+
   return {
     ...c,
     baseCharacteristics: base,
     characteristics: applySpeciesModifiers(base, c.species),
+    ...(psi !== undefined ? { psi } : {}),
     rollLog: log,
   };
 };
