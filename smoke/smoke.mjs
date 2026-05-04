@@ -255,6 +255,143 @@ try {
     record('List page shows 2 characters after clone', cardCount === 2, `${cardCount} cards`);
   }
 
+  // ─── 11c. Engine-level catalogue picker via mustering out ───
+  // Seed a character at the mustering_out step with one Agent term, then click
+  // benefit-column rolls until a catalogue prompt appears. Agent's benefit table
+  // hits a catalogue prompt on rolls 1, 4, 5, 6 (4 of 7) — within ~7 rolls the
+  // probability of NOT hitting one is < 1%.
+  {
+    const seedId = 'smoke-muster-' + Math.random().toString(36).slice(2, 10);
+    // Stuff careerHistory with a 5-term Agent at rank 5 — gives us 5 + 3 = 8
+    // benefit rolls total, which is more than enough to hit a catalogue prompt
+    // probabilistically (~99.4% chance in 8 rolls).
+    const stubTerms = Array.from({ length: 5 }, (_, i) => ({
+      index: i,
+      career: 'agent',
+      assignment: 'law_enforcement',
+      qualified: true,
+      skillRolls: [],
+      survival: { rolled: 9, target: 6, success: true },
+      rankAtEnd: 5,
+      isOfficer: false,
+      termOutcome: 'continued',
+      advancement: { attempted: true, success: true, rolled: 8 },
+    }));
+    const seedChar = {
+      schemaVersion: 1,
+      id: seedId,
+      name: 'Smoke Muster',
+      species: 'human',
+      characteristics: { STR: 8, DEX: 8, END: 9, INT: 9, EDU: 9, SOC: 7 },
+      baseCharacteristics: { STR: 8, DEX: 8, END: 9, INT: 9, EDU: 9, SOC: 7 },
+      backgroundSkills: [
+        { name: 'Streetwise', level: 0, source: { kind: 'background' } },
+      ],
+      careerHistory: stubTerms,
+      connections: { contacts: [], allies: [], rivals: [], enemies: [] },
+      connectionsUsed: 0,
+      benefits: [],
+      injuries: [],
+      cashRollsUsed: 0,
+      currentCash: 0,
+      equipment: [],
+      weapons: [],
+      armor: [],
+      augments: [],
+      studyPeriods: [],
+      notes: '',
+      rollLog: [],
+      wizardState: { step: 'mustering_out' },
+    };
+    // Write directly to localStorage so the store hydrates on next page load.
+    await page.evaluate(({ id, char }) => {
+      localStorage.setItem(`traveller:char:${id}`, JSON.stringify(char));
+      const indexRaw = localStorage.getItem('traveller:index');
+      const index = indexRaw ? JSON.parse(indexRaw) : [];
+      index.push({ id, name: char.name, species: char.species, lastModified: Date.now() });
+      localStorage.setItem('traveller:index', JSON.stringify(index));
+    }, { id: seedId, char: seedChar });
+
+    // Hard reload so the in-memory store re-hydrates from the new localStorage.
+    await page.goto(`${URL}#/create/${seedId}`, { waitUntil: 'networkidle' });
+    await page.reload({ waitUntil: 'networkidle' });
+    await page.waitForSelector('h2:has-text("Mustering out")', { timeout: 5_000 });
+    record('Seeded character lands on mustering-out step', true);
+
+    // Click benefit-column rolls until a catalogue picker appears.
+    // Catalogue prompts use h3 starting with "Pick " (Pick armour / Pick a weapon /
+    // Pick a blade / Pick a gun / Pick an augment / Pick scientific gear).
+    const cataloguePromptLocator = page.locator('h3').filter({ hasText: /^Pick / });
+
+    let pickerOpened = false;
+    let pickerTitle = null;
+    let rollsAttempted = 0;
+    let lastSeen = '';
+    for (let i = 0; i < 12 && !pickerOpened; i++) {
+      const benefitBtn = page.locator('button:has-text("Benefits column")').first();
+      const benefitVisible = await benefitBtn.isVisible();
+      if (!benefitVisible) {
+        lastSeen = await page.locator('main').innerText().catch(() => '');
+        break;
+      }
+      await benefitBtn.click();
+      rollsAttempted += 1;
+      // Wait for either the catalogue prompt or an Apply / Acknowledge button to appear.
+      try {
+        await page.waitForSelector(
+          'h3:has-text("Pick "), button:has-text("Apply benefit"), button:has-text("Acknowledge")',
+          { timeout: 3_000 },
+        );
+      } catch {
+        // fallthrough
+      }
+      if (await cataloguePromptLocator.first().isVisible()) {
+        pickerOpened = true;
+        pickerTitle = await cataloguePromptLocator.first().textContent();
+        break;
+      }
+      const applyBtn = page.locator('button:has-text("Apply benefit")').first();
+      if (await applyBtn.isVisible()) {
+        await applyBtn.click();
+        await page.waitForTimeout(200);
+        continue;
+      }
+      const ack = page.locator('button:has-text("Acknowledge")').first();
+      if (await ack.isVisible()) {
+        await ack.click();
+        await page.waitForTimeout(200);
+        continue;
+      }
+      // Choice/other — pick first option to advance.
+      const choiceBtn = page.locator('section section button, section [role="button"]').first();
+      if (await choiceBtn.isVisible()) {
+        await choiceBtn.click().catch(() => {});
+        await page.waitForTimeout(200);
+        continue;
+      }
+      lastSeen = await page.locator('main').innerText().catch(() => '');
+      break;
+    }
+    record(
+      'Catalogue picker prompt opened during mustering-out',
+      pickerOpened,
+      pickerTitle ?? `no picker after ${rollsAttempted} rolls — ${lastSeen.slice(0, 200)}`,
+    );
+
+    if (pickerOpened) {
+      // Pick the first item in the list and verify it commits.
+      const firstItem = page.locator('h3').filter({ hasText: /^Pick / }).locator('..').locator('ul li button').first();
+      if (await firstItem.isVisible()) {
+        await firstItem.click();
+        await page.waitForTimeout(250);
+        const headerGone = !(await cataloguePromptLocator.first().isVisible());
+        record('Catalogue picker selection commits and dismisses the prompt', headerGone);
+      } else {
+        record('Catalogue picker had at least one item to choose', false, 'no items rendered');
+      }
+    }
+  }
+
   // ─── 12. Mobile responsive — narrow viewport ───
   await page.setViewportSize({ width: 375, height: 800 });
   await page.goto(URL, { waitUntil: 'networkidle' });
