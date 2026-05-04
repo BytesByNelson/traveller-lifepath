@@ -36,12 +36,44 @@ const getListSnapshot = (): Character[] => {
   return cache.listSnapshot;
 };
 
+const CHAR_KEY_PREFIX = 'traveller:char:';
+const INDEX_KEY = 'traveller:index';
+
+let storageListenerAttached = false;
+
+const attachStorageListener = (): void => {
+  if (storageListenerAttached) return;
+  if (typeof window === 'undefined') return;
+  storageListenerAttached = true;
+  window.addEventListener('storage', (e: StorageEvent) => {
+    if (!e.key) return;
+    if (e.key.startsWith(CHAR_KEY_PREFIX)) {
+      const id = e.key.slice(CHAR_KEY_PREFIX.length);
+      const c = loadCharacter(id);
+      if (c) {
+        cache.characters.set(id, c);
+      } else {
+        cache.characters.delete(id);
+      }
+      invalidateListSnapshot();
+      emit();
+    } else if (e.key === INDEX_KEY) {
+      // Index changed in another tab — reload everything.
+      cache.characters.clear();
+      for (const c of loadAllCharacters()) cache.characters.set(c.id, c);
+      invalidateListSnapshot();
+      emit();
+    }
+  });
+};
+
 const ensureLoaded = (): void => {
   if (cache.loaded) return;
   for (const c of loadAllCharacters()) {
     cache.characters.set(c.id, c);
   }
   cache.loaded = true;
+  attachStorageListener();
 };
 
 const emit = (): void => {

@@ -401,6 +401,50 @@ try {
   });
   record('No horizontal overflow at 375px', overflow <= 4, `scrollWidth - clientWidth = ${overflow}px`);
 
+  // ─── 12b. Print-mode rendering on the sheet ───
+  // Best a headless test can do without rendering an actual PDF: emulate the
+  // print media, navigate to a sheet, and assert that print:hidden chrome is
+  // hidden and there's no horizontal overflow at letter-landscape proportions.
+  {
+    // Load any existing character (the imported clone from earlier).
+    await page.setViewportSize({ width: 1100, height: 850 }); // ~ landscape letter @ 96dpi
+    await page.goto(URL, { waitUntil: 'networkidle' });
+    // Click the first character card on the list.
+    const firstCard = page.locator('main ul li button').first();
+    if (await firstCard.isVisible()) {
+      await firstCard.click();
+      await page.waitForURL(/(create|sheet)/, { timeout: 5_000 });
+      // Force into sheet view if we landed on creation.
+      if (!/\/sheet\//.test(page.url())) {
+        // Skip — character isn't finalised. Use the persistence-seeded one if available.
+        await page.goBack();
+      }
+    }
+
+    // Switch to print media.
+    await page.emulateMedia({ media: 'print' });
+    await page.waitForTimeout(150);
+
+    // Assert that print:hidden header chrome is gone (Roll log button etc.).
+    const printChromeHidden = await page.evaluate(() => {
+      const candidates = document.querySelectorAll('.print\\:hidden');
+      // Every print:hidden element must compute to display: none.
+      return Array.from(candidates).every((el) => {
+        return getComputedStyle(el as HTMLElement).display === 'none';
+      });
+    });
+    record('Print mode hides .print:hidden chrome', printChromeHidden);
+
+    // Assert no horizontal overflow in print mode.
+    const printOverflow = await page.evaluate(() => {
+      return document.documentElement.scrollWidth - document.documentElement.clientWidth;
+    });
+    record('No horizontal overflow in print mode', printOverflow <= 4, `print scrollWidth - clientWidth = ${printOverflow}px`);
+
+    // Reset to screen media for the rest of the run.
+    await page.emulateMedia({ media: 'screen' });
+  }
+
   // ─── 13. Verify no JS console errors ───
   record('No JS console errors', errors.length === 0,
     errors.length === 0 ? '' : errors.slice(0, 3).join(' | '));
