@@ -13,6 +13,7 @@ import {
 } from '../engine';
 import { HybridDice } from './HybridDice';
 import { SKILLS } from '../data';
+import { SkillInfoCard } from './SkillInfo';
 import type { CharCode, ConnectionType, SkillName, SkillRef } from '../types';
 
 type Props = {
@@ -182,6 +183,12 @@ function PickSkillPrompt({ state, onUpdate }: Props) {
       >
         Confirm
       </button>
+
+      {picked ? (
+        <div className="mt-3 pt-3 border-t border-gray-200">
+          <SkillInfoCard name={picked.name} {...(picked.spec ? { spec: picked.spec } : {})} />
+        </div>
+      ) : null}
     </div>
   );
 }

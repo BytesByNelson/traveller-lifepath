@@ -1,3 +1,5 @@
+import type { CharCode } from './characteristics';
+
 export type SkillName =
   | 'Admin'
   | 'Advocate'
@@ -65,7 +67,44 @@ export type SkillEntry = SkillRef & {
   source: SkillSource;
 };
 
-/** Static metadata about a skill — what specializations exist, whether it caps differently, etc. */
+/** Difficulty band per the task table on p.61 of the rulebook. */
+export type TaskDifficulty =
+  | 'simple'        // 2+
+  | 'easy'          // 4+
+  | 'routine'       // 6+
+  | 'average'       // 8+
+  | 'difficult'     // 10+
+  | 'very_difficult' // 12+
+  | 'formidable'    // 14+
+  | 'impossible';   // 16+
+
+/** Target number for a difficulty band. */
+export const DIFFICULTY_TARGETS: Record<TaskDifficulty, number> = {
+  simple: 2,
+  easy: 4,
+  routine: 6,
+  average: 8,
+  difficult: 10,
+  very_difficult: 12,
+  formidable: 14,
+  impossible: 16,
+};
+
+/** A worked example of a check using the skill, drawn from the rulebook. */
+export type TaskExample = {
+  name: string;
+  difficulty: TaskDifficulty;
+  /** Either a single characteristic or an "or" choice. Empty when the rule says e.g. "no characteristic". */
+  characteristic?: CharCode | CharCode[];
+  /** Free-form timeframe string from the rulebook ("1D minutes", "1D x 10 seconds"…). */
+  timeframe: string;
+  /** Some checks are opposed; record the opposing skill if so. */
+  opposed?: SkillName;
+  /** Specialization the example applies to, when relevant. */
+  spec?: string;
+};
+
+/** Static metadata about a skill — what specializations exist, when an example check might apply. */
 export type SkillDef = {
   name: SkillName;
   /** Empty array means no specializations. */
@@ -74,5 +113,10 @@ export type SkillDef = {
   hasParent: boolean;
   /** Skills that may not be raised via training (or, for JoaT, ever). */
   notTrainable?: boolean;
-  description?: string;
+  /** Plain-English description from the rulebook. */
+  description: string;
+  /** Per-spec descriptions, when the rulebook elaborates on each specialization. */
+  specDescriptions?: Record<string, string>;
+  /** A few example checks from the rulebook to help players understand what the skill covers. */
+  tasks?: TaskExample[];
 };

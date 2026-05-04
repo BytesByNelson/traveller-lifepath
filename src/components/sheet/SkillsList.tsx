@@ -3,6 +3,7 @@ import type { Character, SkillEntry, SkillName } from '../../types';
 import { SKILLS } from '../../data';
 import { SheetPanel } from './SheetPanel';
 import { EditableNumber } from '../editable/EditableNumber';
+import { SkillInfoCard } from '../SkillInfo';
 
 const PRINTED_SLOTS: { name: SkillName; slotsForSpecs: number }[] = [
   { name: 'Admin', slotsForSpecs: 0 },
@@ -134,32 +135,52 @@ function AddSkillRow({ onAdd }: { onAdd: (ref: { name: SkillName; spec?: string 
   }
   const def = SKILLS[name];
   return (
-    <div className="mt-2 print:hidden flex flex-wrap gap-1 items-center text-xs">
-      <select value={name} onChange={(e) => { setName(e.target.value as SkillName); setSpec(''); }} className="px-1 py-0.5 border border-gray-300 rounded">
-        {(Object.keys(SKILLS) as SkillName[]).map((n) => (
-          <option key={n} value={n}>{n}</option>
-        ))}
-      </select>
-      {def.specs.length > 0 ? (
-        <select value={spec} onChange={(e) => setSpec(e.target.value)} className="px-1 py-0.5 border border-gray-300 rounded">
-          <option value="">(no spec)</option>
-          {def.specs.map((s) => (
-            <option key={s} value={s}>{s}</option>
+    <div className="mt-2 print:hidden text-xs space-y-2 border border-indigo-200 bg-indigo-50/40 rounded p-2">
+      <div className="flex flex-wrap gap-1 items-center">
+        <select
+          value={name}
+          onChange={(e) => {
+            setName(e.target.value as SkillName);
+            setSpec('');
+          }}
+          className="px-1 py-0.5 border border-gray-300 rounded bg-white"
+        >
+          {(Object.keys(SKILLS) as SkillName[]).map((n) => (
+            <option key={n} value={n}>
+              {n}
+            </option>
           ))}
         </select>
-      ) : null}
-      <button
-        onClick={() => {
-          onAdd({ name, ...(spec ? { spec } : {}) });
-          setAdding(false);
-          setName('Admin');
-          setSpec('');
-        }}
-        className="px-2 py-0.5 rounded bg-indigo-600 text-white"
-      >
-        Add at level 1
-      </button>
-      <button onClick={() => setAdding(false)} className="px-2 py-0.5 rounded border border-gray-300">Cancel</button>
+        {def.specs.length > 0 ? (
+          <select
+            value={spec}
+            onChange={(e) => setSpec(e.target.value)}
+            className="px-1 py-0.5 border border-gray-300 rounded bg-white"
+          >
+            <option value="">(no spec)</option>
+            {def.specs.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+        ) : null}
+        <button
+          onClick={() => {
+            onAdd({ name, ...(spec ? { spec } : {}) });
+            setAdding(false);
+            setName('Admin');
+            setSpec('');
+          }}
+          className="px-2 py-0.5 rounded bg-indigo-600 text-white"
+        >
+          Add at level 1
+        </button>
+        <button onClick={() => setAdding(false)} className="px-2 py-0.5 rounded border border-gray-300 bg-white">
+          Cancel
+        </button>
+      </div>
+      <SkillInfoCard name={name} {...(spec ? { spec } : {})} />
     </div>
   );
 }
