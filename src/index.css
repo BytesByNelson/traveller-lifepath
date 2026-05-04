@@ -1,0 +1,66 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─────────── Mobile / narrow widths ─────────── */
+@media (max-width: 480px) {
+  /* Sheet panels: more breathing room when stacked */
+  .sheet-page {
+    padding: 0.75rem;
+  }
+}
+
+/* ─────────── Print: one sheet page per printed page ─────────── */
+@media print {
+  @page {
+    size: letter landscape;
+    margin: 0.4in;
+  }
+  body {
+    background: white !important;
+    color: black !important;
+    font-size: 9.5pt;
+  }
+  /* Strip interactive chrome */
+  button,
+  select,
+  input,
+  textarea {
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+  }
+  /* Prevent the dim "empty" state from looking faint on paper */
+  .italic.text-gray-400,
+  .text-gray-400 {
+    color: #444 !important;
+    font-style: normal !important;
+  }
+  /* Each sheet page on its own physical page */
+  .sheet-page {
+    page-break-inside: avoid;
+    page-break-after: always;
+    border: none !important;
+    box-shadow: none !important;
+  }
+  .sheet-page:last-child {
+    page-break-after: auto;
+  }
+  /* Hex tile clip-path can render unevenly; fall back to a square box for print */
+  [data-testid^='char-'] {
+    clip-path: none !important;
+  }
+  [data-testid^='char-'] > div {
+    border: 1px solid #555 !important;
+    border-radius: 4px !important;
+  }
+  /* Hide any "+ Add row" / × buttons that snuck through the print:hidden filter */
+  .print\:hidden {
+    display: none !important;
+  }
+  /* Sidebar / navigation chrome */
+  aside {
+    display: none !important;
+  }
+}
