@@ -291,7 +291,15 @@ export const resolveConvertConnection = (
 ): EngineState => {
   if (state.prompt?.kind !== 'convert_connection') throw new Error('Not waiting on convert_connection');
   debug('resolve', 'convert_connection', { connectionId, to });
-  const c = state.character;
+  const after: EngineState = {
+    ...state,
+    character: autoConvertConnection(state.character, connectionId, to),
+    prompt: undefined,
+  };
+  return drain(after, rng);
+};
+
+const autoConvertConnection = (c: Character, connectionId: string, to: ConnectionType): Character => {
   let connection: Connection | undefined;
   let nextConns = c.connections;
   for (const bucket of ['contacts', 'allies', 'rivals', 'enemies'] as const) {
@@ -306,12 +314,7 @@ export const resolveConvertConnection = (
   const moved: Connection = { ...connection, type: to };
   const targetBucket = bucketFor(to);
   nextConns = { ...nextConns, [targetBucket]: [...nextConns[targetBucket], moved] };
-  const after: EngineState = {
-    ...state,
-    character: { ...c, connections: nextConns },
-    prompt: undefined,
-  };
-  return drain(after, rng);
+  return { ...c, connections: nextConns };
 };
 
 const bucketFor = (t: ConnectionType): 'contacts' | 'allies' | 'rivals' | 'enemies' =>
@@ -651,6 +654,23 @@ const apply = (state: EngineState, e: Effect, rng: Rng): EngineState => {
             choices: [...e.to],
             count: 1,
             title: state.context.at(-1) ?? 'Gain a new connection',
+          },
+        };
+      }
+      // Single convertible + single target type → no choice to make; auto-convert and
+      // surface a note so the player sees what happened.
+      if (convertibles.length === 1 && e.to.length === 1) {
+        const conn = convertibles[0]!;
+        const target = e.to[0]!;
+        const moved = autoConvertConnection(state.character, conn.id, target);
+        const name = conn.description?.trim() || conn.linkedTraveller?.trim() || `your ${conn.type}`;
+        const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+        return {
+          ...state,
+          character: moved,
+          prompt: {
+            kind: 'note',
+            text: `${name} (${capitalize(conn.type)}) has become a ${capitalize(target)}.`,
           },
         };
       }
