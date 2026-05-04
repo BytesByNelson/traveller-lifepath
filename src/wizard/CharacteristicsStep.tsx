@@ -160,14 +160,18 @@ export function CharacteristicsStep({
               </td>
               <td className="text-right">
                 {rollMode === 'app' ? (
-                  <button
-                    type="button"
-                    onClick={rollPsiOnly}
-                    className="text-xs px-2 py-0.5 border border-amber-400 bg-amber-50 rounded hover:bg-amber-100"
-                    title="Roll 2D for PSI"
-                  >
-                    Roll
-                  </button>
+                  character.psi ? (
+                    <span className="text-xs text-gray-400">rolled</span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={rollPsiOnly}
+                      className="text-xs px-2 py-0.5 border border-amber-400 bg-amber-50 rounded hover:bg-amber-100"
+                      title="Roll 2D for PSI"
+                    >
+                      Roll
+                    </button>
+                  )
                 ) : (
                   <>
                     <input

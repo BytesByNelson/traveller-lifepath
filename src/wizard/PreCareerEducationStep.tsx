@@ -202,7 +202,14 @@ export function PreCareerEducationStep({
               onClick={() => {
                 const event = startPreCareerEvent(character, Math.random);
                 onChange(event.character);
-                setPhase({ kind: 'event', track: phase.track, engine: event });
+                // If the event drained immediately (no follow-up prompts), skip the
+                // intermediate "blank Continue" page and go straight to the result.
+                if (!event.prompt) {
+                  const eventRoll = lastEventRoll(event.character) ?? 0;
+                  setPhase({ kind: 'event_outcome', track: phase.track, eventRoll });
+                } else {
+                  setPhase({ kind: 'event', track: phase.track, engine: event });
+                }
               }}
               className="px-4 py-2 rounded bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700"
             >
@@ -234,27 +241,29 @@ export function PreCareerEducationStep({
     return (
       <section className="space-y-4">
         <h2 className="text-xl font-semibold">Pre-career event</h2>
-        {phase.engine.prompt ? (
-          <PendingPrompt
-            state={phase.engine}
-            onUpdate={(s) => {
-              onChange(s.character);
+        <PendingPrompt
+          state={phase.engine}
+          onUpdate={(s) => {
+            onChange(s.character);
+            if (!s.prompt) {
+              // Final prompt resolved — the engine has drained. Skip the blank
+              // intermediate page and go straight to the event result.
+              const eventRoll = lastEventRoll(s.character) ?? 0;
+              setPhase({ kind: 'event_outcome', track: phase.track, eventRoll });
+            } else {
               setPhase({ ...phase, engine: s });
-            }}
-          />
-        ) : (
-          <EventOutcomeJump
-            character={character}
-            track={phase.track}
-            onContinue={(eventRoll) => setPhase({ kind: 'event_outcome', track: phase.track, eventRoll })}
-          />
-        )}
+            }
+          }}
+        />
       </section>
     );
   }
 
   if (phase.kind === 'event_outcome') {
     const row = PRE_CAREER_EVENTS.find((r) => r.roll === phase.eventRoll);
+    const subRolls = character.rollLog.filter((r) =>
+      r.context.startsWith(`Pre-career event → ${phase.eventRoll} /`),
+    );
     return (
       <section className="space-y-4">
         <h2 className="text-xl font-semibold">Pre-career event — result</h2>
@@ -265,6 +274,23 @@ export function PreCareerEducationStep({
           ) : (
             <p className="text-gray-700 italic">No event matched this roll.</p>
           )}
+          {subRolls.length > 0 ? (
+            <div className="rounded border border-gray-200 bg-white px-2 py-1.5 text-xs space-y-0.5">
+              <div className="text-[10px] uppercase tracking-wide text-gray-500">Checks during this event</div>
+              {subRolls.map((r) => {
+                const label = r.context.split(' / ').slice(1).join(' / ');
+                return (
+                  <div key={r.id} className="flex justify-between">
+                    <span className="text-gray-700">{label}</span>
+                    <span className={r.success ? 'text-emerald-700' : 'text-rose-700'}>
+                      rolled {r.result} vs {r.target}+ —{' '}
+                      <span className="font-medium uppercase">{r.success ? 'pass' : 'fail'}</span>
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          ) : null}
           <p className="text-xs text-gray-600">
             Any effects from this event have already been applied above and recorded on your sheet.
           </p>
@@ -375,27 +401,6 @@ export function PreCareerEducationStep({
 }
 
 /** Renders a Continue button after the event resolves silently — passes the rolled total upward. */
-function EventOutcomeJump({
-  character,
-  track: _track,
-  onContinue,
-}: {
-  character: Character;
-  track: Track;
-  onContinue: (eventRoll: number) => void;
-}) {
-  // Recover the event roll from the most recent rollLog entry tagged "Pre-career event → N".
-  const eventRoll = lastEventRoll(character) ?? 0;
-  return (
-    <button
-      onClick={() => onContinue(eventRoll)}
-      className="px-4 py-2 rounded bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700"
-    >
-      Continue → Event result
-    </button>
-  );
-}
-
 function RollResultCard({ entry, success }: { entry: RollLogEntry; success: boolean }) {
   const target = entry.target ?? 0;
   const result = entry.result;

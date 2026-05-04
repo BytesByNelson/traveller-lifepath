@@ -218,7 +218,20 @@ export function CareerTermStep({
     if (wouldBeTerms >= 4) {
       const state = startAging(c, Math.random);
       onChange(state.character);
-      setPhase({ kind: 'aging', ctx, engine: state });
+      // Aging may emit no effects at all (favorable roll → no row matches), or only
+      // automatic stat reductions that resolve without prompting. In either case the
+      // engine drains immediately and the aging phase would otherwise show a blank
+      // page forever. Advance based on the resulting state.
+      if (!state.prompt) {
+        const affected = agingCrisisChars(state.character);
+        if (affected.length > 0) {
+          setPhase({ kind: 'aging_crisis', ctx, affected });
+        } else {
+          commit(state.character, ctx);
+        }
+      } else {
+        setPhase({ kind: 'aging', ctx, engine: state });
+      }
     } else {
       commit(c, ctx);
     }
