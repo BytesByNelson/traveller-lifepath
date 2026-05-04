@@ -81,6 +81,13 @@ export type Prompt =
       /** Optional source tag attached to the granted SkillEntry. */
       source: SkillEntry['source'];
       title: string;
+      /** Forwarded from the gain_skill_choice effect — see Effect type for semantics. */
+      followUpCheck?: {
+        target: number;
+        description?: string;
+        onSuccess: Effect[];
+        onFailure: Effect[];
+      };
     }
   | {
       kind: 'pick_char';
@@ -224,7 +231,24 @@ export const resolveCheck = (
 export const resolvePickSkill = (state: EngineState, ref: SkillRef, rng: Rng = defaultRng): EngineState => {
   if (state.prompt?.kind !== 'pick_skill') throw new Error('Not waiting on pick_skill');
   const p = state.prompt;
-  const after = grantSkill({ ...state, prompt: undefined }, ref, p.level, p.source);
+  const granted = grantSkill({ ...state, prompt: undefined }, ref, p.level, p.source);
+  // If the prompt asked for a follow-up check on the picked skill, queue it now so the
+  // engine pauses on the check next.
+  const after = p.followUpCheck
+    ? {
+        ...granted,
+        queue: [
+          {
+            type: 'check' as const,
+            ...(p.followUpCheck.description ? { description: p.followUpCheck.description } : {}),
+            roll: { kind: 'skill' as const, skill: ref, target: p.followUpCheck.target },
+            onSuccess: p.followUpCheck.onSuccess,
+            onFailure: p.followUpCheck.onFailure,
+          },
+          ...granted.queue,
+        ],
+      }
+    : granted;
   return drain(after, rng);
 };
 
@@ -436,10 +460,16 @@ const apply = (state: EngineState, e: Effect, rng: Rng): EngineState => {
           excludeJoat: e.excludeJoat,
           source: { kind: 'manual' },
           title: state.context.at(-1) ?? 'Choose a skill',
+          followUpCheck: e.followUpCheck,
         },
       };
     case 'modify_char':
       return applyCharDelta(state, e.char, e.delta);
+    case 'raise_char_to_or_bump': {
+      const cur = state.character.characteristics[e.char];
+      const target = cur < e.minimum ? e.minimum : cur + 1;
+      return applyCharDelta(state, e.char, target - cur);
+    }
     case 'modify_char_choice':
       return {
         ...state,

@@ -146,7 +146,7 @@ export const army: Career = {
       { rank: 3, title: 'Major', bonus: { type: 'gain_skill', skill: { name: 'Tactics', spec: 'military' }, level: 1 } },
       { rank: 4, title: 'Lieutenant Colonel' },
       { rank: 5, title: 'Colonel' },
-      { rank: 6, title: 'General', bonus: { type: 'note', text: 'SOC raised to 10, or +1 if already higher.' } },
+      { rank: 6, title: 'General', bonus: { type: 'raise_char_to_or_bump', char: 'SOC', minimum: 10 } },
     ],
   },
   mishaps: [

@@ -80,8 +80,24 @@ export type Effect =
       from?: SkillRef[];
       existingOnly?: boolean;
       excludeJoat?: boolean;
+      /**
+       * After the player picks a skill, run a SkillCheck on that skill with the given target
+       * and queue onSuccess/onFailure effects. Used for events like "pick a skill, then roll
+       * 8+ on it: success → DM+2 next advancement, fail → DM-2 next survival."
+       */
+      followUpCheck?: {
+        target: number;
+        description?: string;
+        onSuccess: Effect[];
+        onFailure: Effect[];
+      };
     }
   | { type: 'modify_char'; char: CharCode; delta: number }
+  /**
+   * Set characteristic to at least `minimum`. If already at or above, +1 instead.
+   * Encodes the Mongoose 2022 rank-promotion rule "SOC raised to 10, or +1 if already higher."
+   */
+  | { type: 'raise_char_to_or_bump'; char: CharCode; minimum: number }
   | { type: 'modify_char_choice'; chars: CharCode[]; delta: number }
   /**
    * Like modify_char_choice but the delta is rolled (1D / 2D / D3) at apply

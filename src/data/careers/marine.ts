@@ -142,7 +142,7 @@ export const marine: Career = {
       { rank: 2, title: 'Captain' },
       { rank: 3, title: 'Force Commander', bonus: { type: 'gain_skill', skill: { name: 'Tactics' }, level: 1 } },
       { rank: 4, title: 'Lieutenant Colonel' },
-      { rank: 5, title: 'Colonel', bonus: { type: 'note', text: 'SOC raised to 10, or +1 if already higher.' } },
+      { rank: 5, title: 'Colonel', bonus: { type: 'raise_char_to_or_bump', char: 'SOC', minimum: 10 } },
       { rank: 6, title: 'Brigadier' },
     ],
   },

@@ -121,8 +121,8 @@ export const navy: Career = {
       { rank: 2, title: 'Sublieutenant', bonus: { type: 'gain_skill', skill: { name: 'Leadership' }, level: 1 } },
       { rank: 3, title: 'Lieutenant' },
       { rank: 4, title: 'Commander', bonus: { type: 'gain_skill', skill: { name: 'Tactics', spec: 'naval' }, level: 1 } },
-      { rank: 5, title: 'Captain', bonus: { type: 'note', text: 'SOC raised to 10, or +1 if higher.' } },
-      { rank: 6, title: 'Admiral', bonus: { type: 'note', text: 'SOC raised to 12, or +1 if higher.' } },
+      { rank: 5, title: 'Captain', bonus: { type: 'raise_char_to_or_bump', char: 'SOC', minimum: 10 } },
+      { rank: 6, title: 'Admiral', bonus: { type: 'raise_char_to_or_bump', char: 'SOC', minimum: 12 } },
     ],
   },
   mishaps: [

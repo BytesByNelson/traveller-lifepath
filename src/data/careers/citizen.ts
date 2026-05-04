@@ -177,8 +177,13 @@ export const citizen: Career = {
           type: 'gain_skill_choice',
           level: 1,
           from: [{ name: 'Advocate' }, { name: 'Persuade' }, { name: 'Explosives' }, { name: 'Streetwise' }],
+          followUpCheck: {
+            target: 8,
+            description: 'Roll 8+ on the skill you just picked',
+            onSuccess: [{ type: 'next_advancement_dm', dm: 2 }],
+            onFailure: [{ type: 'next_survival_dm', dm: -2 }],
+          },
         },
-        { type: 'note', text: 'Roll 8+ on the chosen skill: success → DM+2 to next advancement; failure → DM-2 to next survival.' },
       ],
     },
     {

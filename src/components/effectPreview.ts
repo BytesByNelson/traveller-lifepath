@@ -20,6 +20,8 @@ export function summarizeEffect(effect: Effect): string {
       return `Pick any skill${effect.existingOnly ? ' you already have' : ''}${effect.level ? ` (level ${effect.level})` : ''}`;
     case 'modify_char':
       return `${effect.char} ${effect.delta > 0 ? '+' : ''}${effect.delta}`;
+    case 'raise_char_to_or_bump':
+      return `${effect.char} → at least ${effect.minimum}, else +1`;
     case 'modify_char_choice':
       return `Pick: ${effect.chars.join(' / ')} ${effect.delta > 0 ? '+' : ''}${effect.delta}`;
     case 'modify_char_choice_rolled':
