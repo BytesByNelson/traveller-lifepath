@@ -121,7 +121,24 @@ export function WizardPage() {
             }}
           />
         )}
-        {step === 'done' && (
+        {step === 'done' && character.deceased ? (
+          <section className="space-y-3">
+            <h2 className="text-xl font-semibold text-red-700">In memoriam</h2>
+            <div className="rounded border border-red-300 p-3 text-sm bg-red-50 space-y-1">
+              <p>
+                <strong>{character.name || '(unnamed)'}</strong> didn't make it out of term {character.deceased.termIndex + 1}.
+              </p>
+              <p className="text-gray-700">{character.deceased.reason}</p>
+            </div>
+            <button
+              onClick={() => navigate(`/sheet/${character.id}`)}
+              className="px-4 py-2 rounded border border-gray-300 text-sm hover:bg-gray-50"
+            >
+              View final sheet
+            </button>
+          </section>
+        ) : null}
+        {step === 'done' && !character.deceased && (
           <section className="space-y-3">
             <p className="text-gray-600">Character creation complete.</p>
             <button

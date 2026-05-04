@@ -444,6 +444,37 @@ const apply = (state: EngineState, e: Effect, rng: Rng): EngineState => {
         ...state,
         prompt: { kind: 'pick_char', chars: e.chars, delta: e.delta, title: state.context.at(-1) ?? 'Choose a characteristic' },
       };
+    case 'modify_char_choice_rolled': {
+      const rolled = rollSpec(e.dice, rng);
+      const delta = e.sign === 'minus' ? -rolled : rolled;
+      const log: RollLogEntry = {
+        id: crypto.randomUUID(),
+        ts: Date.now(),
+        context: `${state.context.at(-1) ?? 'Reduce char'} (${e.dice} → ${rolled})`,
+        result: rolled,
+        source: 'rng',
+      };
+      return {
+        ...state,
+        character: { ...state.character, rollLog: [...state.character.rollLog, log] },
+        prompt: {
+          kind: 'pick_char',
+          chars: e.chars,
+          delta,
+          title: `${state.context.at(-1) ?? 'Reduce'} — ${e.sign === 'minus' ? '−' : '+'}${rolled} (${e.dice})`,
+        },
+      };
+    }
+    case 'modify_psi': {
+      const c = state.character;
+      if (!c.psi) return state;
+      const wasFull = c.psi.current >= c.psi.max;
+      const max = Math.max(0, c.psi.max + e.delta);
+      // If the Traveller was at full PSI, gaining a point raises current too.
+      // Otherwise current stays put (clamped to the new max if max went down).
+      const current = wasFull ? max : Math.min(c.psi.current, max);
+      return { ...state, character: { ...c, psi: { max, current } } };
+    }
     case 'gain_injury': {
       const injury: Character['injuries'][number] = {
         id: crypto.randomUUID(),
@@ -581,11 +612,34 @@ const apply = (state: EngineState, e: Effect, rng: Rng): EngineState => {
 /* ─────────────── Helpers ─────────────── */
 
 const grantSkill = (state: EngineState, ref: SkillRef, level: number | undefined, source: SkillEntry['source']): EngineState => {
-  const newLevel = computeNewSkillLevel(getCurrentLevel(state.character, ref), level);
+  const currentLevel = getCurrentLevel(state.character, ref);
+  const newLevel = computeNewSkillLevel(currentLevel, level);
   if (newLevel <= 0) return state;
+
+  // 3 × (INT + EDU) total cap. The level-4 cap is enforced inside
+  // computeNewSkillLevel; this is the aggregate cap from p.18.
+  const intent = newLevel - currentLevel;
+  if (intent > 0) {
+    const total = totalSkillLevels(state.character);
+    const cap = 3 * (state.character.characteristics.INT + state.character.characteristics.EDU);
+    if (total + intent > cap) {
+      const refLabel = ref.name + (ref.spec ? ` (${ref.spec})` : '');
+      return {
+        ...state,
+        prompt: {
+          kind: 'note',
+          text: `Skill cap reached. Total skill levels (${total}) would exceed 3 × (INT + EDU) = ${cap} after ${refLabel}. The increase is lost.`,
+        },
+      };
+    }
+  }
+
   const character = upsertSkill(state.character, { ...ref, level: newLevel, source });
   return { ...state, character };
 };
+
+const totalSkillLevels = (c: Character): number =>
+  c.backgroundSkills.reduce((sum, s) => sum + s.level, 0);
 
 const upsertSkill = (c: Character, entry: SkillEntry): Character => {
   const list = [...c.backgroundSkills];

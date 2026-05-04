@@ -2,12 +2,14 @@ import { useState } from 'react';
 import type { CareerId, CareerTerm, Character } from '../types';
 import { CAREERS } from '../data';
 import {
+  agingCrisisChars,
   applyBasicTraining,
   availableSkillTables,
   canAttemptCommission,
   commitCareerTerm,
   isAgingDue,
   qualificationDMs,
+  roll1d,
   startAdvancement,
   startAging,
   startCommission,
@@ -71,7 +73,8 @@ type Phase =
   | { kind: 'commission_check'; ctx: TermCtx; engine: EngineState }
   | { kind: 'advancement_offer'; ctx: TermCtx }
   | { kind: 'advancement_check'; ctx: TermCtx; engine: EngineState }
-  | { kind: 'aging'; ctx: TermCtx; engine: EngineState };
+  | { kind: 'aging'; ctx: TermCtx; engine: EngineState }
+  | { kind: 'aging_crisis'; ctx: TermCtx; affected: import('../types').CharCode[] };
 
 export function CareerTermStep({
   character,
@@ -589,12 +592,95 @@ export function CareerTermStep({
           onUpdate={(s) => {
             onChange(s.character);
             if (!s.prompt) {
-              commit(s.character, phase.ctx);
+              const affected = agingCrisisChars(s.character);
+              if (affected.length > 0) {
+                setPhase({ kind: 'aging_crisis', ctx: phase.ctx, affected });
+              } else {
+                commit(s.character, phase.ctx);
+              }
             } else {
               setPhase({ ...phase, engine: s });
             }
           }}
         />
+      </section>
+    );
+  }
+
+  /* ─────── aging crisis ─────── */
+  if (phase.kind === 'aging_crisis') {
+    const affected = phase.affected;
+    const pay = () => {
+      const rolled = roll1d(Math.random);
+      const cost = rolled * 10000;
+      const cash = character.currentCash;
+      const paid = Math.min(cost, cash);
+      const debt = cost - paid;
+      let updated: Character = {
+        ...character,
+        currentCash: cash - paid,
+        medicalDebt: (character.medicalDebt ?? 0) + debt,
+        rollLog: [
+          ...character.rollLog,
+          {
+            id: crypto.randomUUID(),
+            ts: Date.now(),
+            context: `Aging crisis — pay 1D × Cr10,000 → ${rolled} = Cr${cost.toLocaleString()}`,
+            result: rolled,
+            source: 'rng',
+          },
+        ],
+      };
+      // Restore each affected characteristic to 1.
+      const restored = { ...updated.characteristics };
+      for (const code of affected) restored[code] = 1;
+      updated = { ...updated, characteristics: restored };
+      onChange(updated);
+      commit(updated, phase.ctx);
+    };
+
+    const die = () => {
+      const next: Character = {
+        ...character,
+        wizardState: {
+          ...(character.wizardState ?? { step: 'career_term' }),
+          step: 'done',
+        },
+        deceased: {
+          reason: `Aging crisis — refused medical care (${affected.join(', ')} → 0)`,
+          termIndex,
+        },
+      };
+      onChange(next);
+      onTermComplete(next);
+    };
+
+    return (
+      <section className="space-y-3">
+        <h2 className="text-xl font-semibold text-red-700">Aging crisis</h2>
+        <div className="rounded border border-red-300 p-3 text-sm bg-red-50 space-y-2">
+          <p>
+            Aging has reduced <strong>{affected.join(', ')}</strong> to 0. Per the rulebook the Traveller dies unless
+            they pay <strong>1D × Cr10,000</strong> for medical care, which restores affected characteristics to 1.
+          </p>
+          <p className="text-gray-700">
+            Cash on hand: <strong>Cr{character.currentCash.toLocaleString()}</strong>. Any shortfall is added to medical debt.
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={pay}
+            className="px-4 py-2 rounded bg-amber-600 text-white text-sm font-medium hover:bg-amber-700"
+          >
+            Pay 1D × Cr10,000
+          </button>
+          <button
+            onClick={die}
+            className="px-4 py-2 rounded border border-red-400 bg-white text-red-700 text-sm hover:bg-red-50"
+          >
+            Decline — the Traveller dies
+          </button>
+        </div>
       </section>
     );
   }

@@ -77,7 +77,7 @@ export const psion: Career = {
         { roll: 3, effect: { type: 'modify_char', char: 'STR', delta: 1 } },
         { roll: 4, effect: { type: 'modify_char', char: 'DEX', delta: 1 } },
         { roll: 5, effect: { type: 'modify_char', char: 'END', delta: 1 } },
-        { roll: 6, effect: { type: 'note', text: 'PSI +1 (apply manually).' } },
+        { roll: 6, effect: { type: 'modify_psi', delta: 1 } },
       ],
     },
     {
@@ -191,7 +191,8 @@ export const psion: Career = {
       roll: 2,
       text: 'You telepathically contact something dangerous. Lose one PSI and suffer persistent terrifying nightmares.',
       effects: [
-        { type: 'note', text: 'Lose 1 PSI (apply manually). Persistent nightmares.' },
+        { type: 'modify_psi', delta: -1 },
+        { type: 'note', text: 'Persistent nightmares.' },
         { type: 'eject_career' },
       ],
     },
@@ -287,7 +288,7 @@ export const psion: Career = {
     {
       roll: 8,
       text: 'You achieve a new level of psionic strength. Increase your PSI by +1.',
-      effects: [{ type: 'note', text: 'PSI +1 (apply manually on the sheet).' }],
+      effects: [{ type: 'modify_psi', delta: 1 }],
     },
     {
       roll: 9,

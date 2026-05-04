@@ -181,6 +181,17 @@ export type Character = {
   /** IDs of powers the Traveller knows. Talents themselves are tracked as skills (Telepathy, etc.). */
   psionicPowersKnown?: string[];
 
+  /**
+   * Set when an aging crisis killed the Traveller (declined to pay medical
+   * bills) — the wizard refuses to advance past the death screen.
+   */
+  deceased?: { reason: string; termIndex: number };
+  /**
+   * Outstanding medical debt accumulated when the Traveller couldn't pay an
+   * aging-crisis bill in full. Persists into play.
+   */
+  medicalDebt?: number;
+
   // in-play tracking
   currentCash: number;
   equipment: Item[];

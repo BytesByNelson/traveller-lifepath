@@ -83,6 +83,17 @@ export type Effect =
   | { type: 'modify_char'; char: CharCode; delta: number }
   | { type: 'modify_char_choice'; chars: CharCode[]; delta: number }
   /**
+   * Like modify_char_choice but the delta is rolled (1D / 2D / D3) at apply
+   * time and applied as a negative reduction to the chosen characteristic.
+   * Used by Injury rows 1 and 2 ("reduce one physical char by 1D").
+   */
+  | { type: 'modify_char_choice_rolled'; chars: CharCode[]; dice: '1D' | '2D' | 'D3'; sign: 'minus' | 'plus' }
+  /**
+   * Adjusts the Traveller's PSI maximum by `delta`. Current PSI is clamped to
+   * the new max. No-op if the character has no PSI rating yet.
+   */
+  | { type: 'modify_psi'; delta: number }
+  /**
    * Record a wound on the character. Appended to character.injuries[].
    * Char reductions emitted as separate `modify_char` / `modify_char_choice` effects;
    * this only captures the human-readable wound entry that appears on the sheet.

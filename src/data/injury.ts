@@ -23,7 +23,7 @@ export const INJURY_TABLE: InjuryRow[] = [
         severity: 'nearly_killed',
         description: 'Nearly killed — one physical -1D, two others -2.',
       },
-      { type: 'note', text: 'Reduce one physical characteristic by 1D (player rolls).' },
+      { type: 'modify_char_choice_rolled', chars: ['STR', 'DEX', 'END'], dice: '1D', sign: 'minus' },
       { type: 'modify_char_choice', chars: ['STR', 'DEX', 'END'], delta: -2 },
       { type: 'modify_char_choice', chars: ['STR', 'DEX', 'END'], delta: -2 },
     ],
@@ -33,7 +33,7 @@ export const INJURY_TABLE: InjuryRow[] = [
     text: 'Severely injured — reduce one physical characteristic by 1D.',
     effects: [
       { type: 'gain_injury', severity: 'severely_injured', description: 'Severely injured — one physical -1D.' },
-      { type: 'note', text: 'Reduce one physical characteristic by 1D (player rolls).' },
+      { type: 'modify_char_choice_rolled', chars: ['STR', 'DEX', 'END'], dice: '1D', sign: 'minus' },
     ],
   },
   {
