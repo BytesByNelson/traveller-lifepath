@@ -430,7 +430,7 @@ try {
       const candidates = document.querySelectorAll('.print\\:hidden');
       // Every print:hidden element must compute to display: none.
       return Array.from(candidates).every((el) => {
-        return getComputedStyle(el as HTMLElement).display === 'none';
+        return getComputedStyle(el).display === 'none';
       });
     });
     record('Print mode hides .print:hidden chrome', printChromeHidden);
