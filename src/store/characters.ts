@@ -103,6 +103,9 @@ export const upsertCharacter = (c: Character): void => {
   saveCharacter(c);
   invalidateListSnapshot();
   emit();
+  // Skip logging when only text fields (name, homeworld, notes) changed — typing in the
+  // Basics inputs would otherwise spam one log line per keystroke.
+  if (prev && !hasInterestingDelta(prev, c)) return;
   debug('store', 'upsert', {
     id: c.id,
     rollLogDelta: c.rollLog.length - (prev?.rollLog.length ?? 0),
@@ -117,6 +120,30 @@ export const upsertCharacter = (c: Character): void => {
     },
     wizardStep: c.wizardState?.step,
   });
+};
+
+/**
+ * Whether two character snapshots differ in something a developer would want to see
+ * in the trace — rolls, characteristics, skills, connections, careers, wizard step.
+ * Returns false when only cosmetic text fields (name, homeworld, notes) differ.
+ */
+const hasInterestingDelta = (a: Character, b: Character): boolean => {
+  if (a.rollLog.length !== b.rollLog.length) return true;
+  if (a.backgroundSkills.length !== b.backgroundSkills.length) return true;
+  if (a.careerHistory.length !== b.careerHistory.length) return true;
+  if (a.wizardState?.step !== b.wizardState?.step) return true;
+  for (const k of ['STR', 'DEX', 'END', 'INT', 'EDU', 'SOC'] as const) {
+    if (a.characteristics[k] !== b.characteristics[k]) return true;
+  }
+  for (const k of ['contacts', 'allies', 'rivals', 'enemies'] as const) {
+    if (a.connections[k].length !== b.connections[k].length) return true;
+  }
+  if ((a.psi?.current ?? -1) !== (b.psi?.current ?? -1)) return true;
+  if ((a.psi?.max ?? -1) !== (b.psi?.max ?? -1)) return true;
+  if (a.currentCash !== b.currentCash) return true;
+  if (a.benefits.length !== b.benefits.length) return true;
+  if (a.injuries.length !== b.injuries.length) return true;
+  return false;
 };
 
 export const deleteCharacter = (id: string): void => {
