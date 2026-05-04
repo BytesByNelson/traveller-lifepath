@@ -85,6 +85,7 @@ type Phase =
   | { kind: 'pick_career' }
   | { kind: 'pick_assignment'; careerId: CareerId }
   | { kind: 'qualify'; ctx: TermCtx; engine: EngineState }
+  | { kind: 'qualify_outcome'; ctx: TermCtx; success: boolean; rollEntry: import('../types').RollLogEntry }
   | { kind: 'basic_training'; ctx: TermCtx }
   | { kind: 'pick_skill_table'; ctx: TermCtx; isExtra: boolean }
   | { kind: 'rolling_skill_table'; ctx: TermCtx; engine: EngineState; tableId: SkillTableId; rolled: number; isExtra: boolean }
@@ -321,16 +322,83 @@ export function CareerTermStep({
             onChange(s.character);
             if (!s.prompt) {
               const lastCheck = s.character.rollLog.filter((r) => r.target !== undefined).at(-1);
-              if (lastCheck?.success) {
-                setPhase({ kind: 'basic_training', ctx: { ...phase.ctx, qualified: true } });
-              } else {
-                setPhase({ kind: 'pick_career' });
-              }
+              if (!lastCheck) return;
+              setPhase({
+                kind: 'qualify_outcome',
+                ctx: { ...phase.ctx, qualified: !!lastCheck.success },
+                success: !!lastCheck.success,
+                rollEntry: lastCheck,
+              });
             } else {
               setPhase({ ...phase, engine: s });
             }
           }}
         />
+      </section>
+    );
+  }
+
+  /* ─────── qualify outcome ─────── */
+  if (phase.kind === 'qualify_outcome') {
+    const e = phase.rollEntry;
+    const target = e.target ?? 0;
+    const result = e.result;
+    const natural = e.natural ?? result;
+    const dms = e.dms ?? [];
+    const dmTotal = dms.reduce((acc, d) => acc + d.value, 0);
+    return (
+      <section className="space-y-4">
+        <h2 className="text-xl font-semibold">{career.name} — qualification result</h2>
+        <div
+          className={`rounded border px-3 py-2 text-sm ${
+            phase.success ? 'border-emerald-300 bg-emerald-50' : 'border-rose-300 bg-rose-50'
+          }`}
+        >
+          <div className="flex items-baseline justify-between">
+            <div>
+              <span className="font-semibold">Rolled {result}</span>
+              {dmTotal !== 0 ? (
+                <span className="text-gray-600">
+                  {' '}
+                  ({natural} natural{dmTotal > 0 ? ` + ${dmTotal}` : ` − ${Math.abs(dmTotal)}`} DM)
+                </span>
+              ) : null}
+              <span className="text-gray-600"> vs target {target}+</span>
+            </div>
+            <span className={`text-xs font-semibold uppercase ${phase.success ? 'text-emerald-700' : 'text-rose-700'}`}>
+              {phase.success ? 'Qualified' : 'Failed'}
+            </span>
+          </div>
+        </div>
+        {phase.success ? (
+          <>
+            <p className="text-sm text-gray-700">
+              Welcome to {career.name}. Next: basic training, then your first skill roll.
+            </p>
+            <button
+              onClick={() => setPhase({ kind: 'basic_training', ctx: phase.ctx })}
+              className="px-4 py-2 rounded bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700"
+            >
+              Continue → Basic training
+            </button>
+          </>
+        ) : (
+          <>
+            <div className="rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+              <p className="font-medium">Did not qualify.</p>
+              <p className="mt-1">
+                You can try a different career, take the Drifter career (always qualifies), or be drafted
+                if you're attempting your first term — pick a path on the next screen.
+              </p>
+            </div>
+            <button
+              onClick={() => setPhase({ kind: 'pick_career' })}
+              className="px-4 py-2 rounded bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700"
+            >
+              Back to career selection
+            </button>
+          </>
+        )}
       </section>
     );
   }
