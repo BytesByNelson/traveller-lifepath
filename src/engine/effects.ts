@@ -268,7 +268,7 @@ export const resolveCheck = (
   // Consume any pending DM that just applied to this check, so it doesn't carry forward.
   const ctx = state.context.at(-1) ?? '';
   const pendingAfter = { ...state.pendingDMs };
-  if (/qualification/i.test(ctx)) delete pendingAfter.nextQualification;
+  if (/qualification/i.test(ctx) || /commission/i.test(ctx)) delete pendingAfter.nextQualification;
   else if (/survival/i.test(ctx)) delete pendingAfter.nextSurvival;
   else if (/advancement/i.test(ctx)) delete pendingAfter.nextAdvancement;
 
@@ -926,7 +926,13 @@ const computeCheckDMs = (state: EngineState, roll: RollCheck): { source: string;
   }
   const ctx = state.context.at(-1) ?? '';
   const pending = state.pendingDMs;
-  if (/qualification/i.test(ctx) && typeof pending.nextQualification === 'number' && pending.nextQualification !== 0) {
+  // Commission and qualification both share the nextQualification bucket — they're
+  // both "are you getting accepted" rolls per the rulebook's idiom.
+  if (
+    (/qualification/i.test(ctx) || /commission/i.test(ctx)) &&
+    typeof pending.nextQualification === 'number' &&
+    pending.nextQualification !== 0
+  ) {
     dms.push({ source: 'Carried DM', value: pending.nextQualification });
   } else if (/survival/i.test(ctx) && typeof pending.nextSurvival === 'number' && pending.nextSurvival !== 0) {
     dms.push({ source: 'Carried DM', value: pending.nextSurvival });

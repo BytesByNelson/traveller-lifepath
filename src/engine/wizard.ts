@@ -499,12 +499,34 @@ export const startCommission = (
   const dm = (career.commission.perTermAfterFirst ?? 0) * Math.max(0, termsInThisCareer);
   const effects: Effect[] = [];
   if (dm !== 0) effects.push({ type: 'next_qualification_dm', dm });
+  // Pre-career grad bonus to first commission. University grad: +DM on any military
+  // career. Military Academy grad: +DM on the tied career only. Auto-commission case
+  // is handled at the wizard layer (skips this engine entry-point entirely).
+  const preBonus = c.wizardState?.preCareerBonus?.commission;
+  if (preBonus && termsInThisCareer === 0 && !preBonus.auto) {
+    const tiedOk = !preBonus.tiedTo || preBonus.tiedTo === career.id;
+    if (tiedOk && preBonus.dm !== 0) {
+      effects.push({ type: 'next_qualification_dm', dm: preBonus.dm });
+    }
+  }
   effects.push({ type: 'check', roll: career.commission.check, onSuccess: [], onFailure: [] });
   let state = blankEngineState(c);
   state = pushContext(state, `${career.name} commission`);
   state = enqueue(state, effects);
   state = drain(state, rng);
   return state;
+};
+
+/**
+ * Whether the player's pre-career grad bonus auto-commissions them on the first
+ * term of this career. Returns false when no bonus, when already attempted in a
+ * prior term, or when a Military Academy bonus is tied to a different career.
+ */
+export const isAutoCommissioned = (c: Character, careerId: CareerId, termsInThisCareer: number): boolean => {
+  if (termsInThisCareer !== 0) return false;
+  const bonus = c.wizardState?.preCareerBonus?.commission;
+  if (!bonus?.auto) return false;
+  return !bonus.tiedTo || bonus.tiedTo === careerId;
 };
 
 /* ─────────────── Aging ─────────────── */

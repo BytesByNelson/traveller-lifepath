@@ -8,6 +8,7 @@ import {
   canAttemptCommission,
   commitCareerTerm,
   isAgingDue,
+  isAutoCommissioned,
   qualificationDMs,
   roll1d,
   rollDraft,
@@ -188,17 +189,14 @@ export function CareerTermStep({
         : {}),
       ...(ctx.commissionAttempted ? { commission: { attempted: true, success: ctx.isOfficer, rolled: 0 } } : {}),
     };
-    // Auto-entry only applies to the first career term after graduation — clear it once
-    // committed so subsequent terms let the player choose freely.
+    // The pre-career-grad bonuses (auto-entry to tied career, commission DM/auto, and
+    // qualifyDM for the next career) all apply only to the first post-grad career term.
+    // Strip them on commit so they don't leak forward.
     let next = commitCareerTerm(c, term);
-    if (next.wizardState?.preCareerBonus?.autoEntry) {
-      const { autoEntry: _drop, ...rest } = next.wizardState.preCareerBonus;
+    if (next.wizardState?.preCareerBonus) {
       next = {
         ...next,
-        wizardState: {
-          ...next.wizardState,
-          preCareerBonus: rest,
-        },
+        wizardState: { ...next.wizardState, preCareerBonus: undefined },
       };
     }
     // continueInCareer is a single-term hint — clear it now so the next between-terms
@@ -772,6 +770,27 @@ export function CareerTermStep({
   /* ─────── commission offer ─────── */
   if (phase.kind === 'commission_offer') {
     const com = career.commission!;
+    const termsHere = termsInCareer(character, phase.ctx.careerId);
+    const preBonus = character.wizardState?.preCareerBonus?.commission;
+    const bonusApplies =
+      !!preBonus && termsHere === 0 && (!preBonus.tiedTo || preBonus.tiedTo === phase.ctx.careerId);
+    const auto = isAutoCommissioned(character, phase.ctx.careerId, termsHere);
+
+    /** Promote the player to officer rank 1 and route to the bonus skill roll. Used for
+     *  both the auto-commission path (no roll) and the rolled-success path. */
+    const grantOfficer = (c: Character, rolledLog: { id: string; ts: number; context: string; target: number; natural: number; result: number; success: true; source: 'rng' | 'manual' }) => {
+      const withLog: Character = { ...c, rollLog: [...c.rollLog, rolledLog] };
+      onChange(withLog);
+      const ranked = startRankBonus(withLog, career, phase.ctx.assignmentId, 1, true, Math.random);
+      onChange(ranked.character);
+      const ctx = { ...phase.ctx, isOfficer: true, rankAtEnd: 1, commissionAttempted: true };
+      if (ranked.prompt) {
+        setPhase({ kind: 'rolling_skill_table', ctx, engine: ranked, tableId: 'service_skills', rolled: 0, isExtra: true });
+      } else {
+        setPhase({ kind: 'pick_skill_table', ctx, isExtra: true });
+      }
+    };
+
     return (
       <section className="space-y-4">
         <h2 className="text-xl font-semibold">{career.name} — commission?</h2>
@@ -779,21 +798,44 @@ export function CareerTermStep({
           Attempt commission ({com.check.char} {com.check.target}+).
           You may not roll for advancement in the same term you gain a commission.
         </p>
+        {bonusApplies ? (
+          <div className="rounded border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+            <strong>Pre-career grad bonus applies:</strong>{' '}
+            {auto
+              ? `automatic commission on this first-term roll (no check needed).`
+              : `+${preBonus!.dm} DM to the commission check (one-shot, this term only).`}
+          </div>
+        ) : null}
         <div className="flex gap-2">
-          <button
-            onClick={() => {
-              // commission_offer is reached only via the event phase, which already
-              // synced its engine.character to the parent via onChange before transitioning.
-              // So `character` here is the latest. If a future intermediate phase ever
-              // applies effects between event → commission_offer without onChange, switch
-              // to passing phase.engine.character forward in the phase state.
-              const state = startCommission(character, career, termsInCareer(character, phase.ctx.careerId), Math.random);
-              setPhase({ kind: 'commission_check', ctx: { ...phase.ctx, commissionAttempted: true }, engine: state });
-            }}
-            className="px-4 py-2 rounded bg-indigo-600 text-white text-sm hover:bg-indigo-700"
-          >
-            Attempt commission
-          </button>
+          {auto ? (
+            <button
+              onClick={() => {
+                grantOfficer(character, {
+                  id: crypto.randomUUID(),
+                  ts: Date.now(),
+                  context: `${career.name} commission (auto from pre-career grad)`,
+                  target: com.check.target,
+                  natural: 0,
+                  result: 999, // sentinel: clearly above any target
+                  success: true,
+                  source: 'rng',
+                });
+              }}
+              className="px-4 py-2 rounded bg-emerald-600 text-white text-sm hover:bg-emerald-700"
+            >
+              Auto-commission (skip the roll)
+            </button>
+          ) : (
+            <button
+              onClick={() => {
+                const state = startCommission(character, career, termsHere, Math.random);
+                setPhase({ kind: 'commission_check', ctx: { ...phase.ctx, commissionAttempted: true }, engine: state });
+              }}
+              className="px-4 py-2 rounded bg-indigo-600 text-white text-sm hover:bg-indigo-700"
+            >
+              Attempt commission
+            </button>
+          )}
           <button
             onClick={() => setPhase({ kind: 'advancement_offer', ctx: phase.ctx })}
             className="px-4 py-2 rounded border border-gray-300 text-sm hover:bg-gray-50"
