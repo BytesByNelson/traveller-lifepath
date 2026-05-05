@@ -1,8 +1,8 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { PreCareerEducationStep } from './PreCareerEducationStep';
-import { newCharacter } from '../engine';
+import { dieValue, newCharacter } from '../engine';
 import type { Character } from '../types';
 
 const seed = (overrides: Partial<Character['characteristics']> = {}): Character => ({
@@ -18,8 +18,36 @@ const seed = (overrides: Partial<Character['characteristics']> = {}): Character 
   },
 });
 
+/**
+ * Stub Math.random to return a scripted sequence so the 2D event roll inside
+ * startPreCareerEvent is deterministic. Each die is `1 + floor(rng() * 6)`, so
+ * passing dieValue(n) makes the next die land on n.
+ */
+const useScriptedRandom = (values: number[]) => {
+  let i = 0;
+  vi.spyOn(Math, 'random').mockImplementation(() => {
+    if (i >= values.length) throw new Error('scripted Math.random exhausted');
+    return values[i++]!;
+  });
+};
+
 describe('Pre-career education — outcome screens', () => {
+  beforeEach(() => {
+    // Default: no random calls expected. Tests that need rolls override with their own script.
+    vi.spyOn(Math, 'random').mockImplementation(() => {
+      throw new Error('Math.random called without a scripted value');
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it('shows an entry-result card after a successful entry roll, then routes through event → graduation result', async () => {
+    // Entry is entered manually — no rng calls. Pre-career event then rolls 2D = 5
+    // (Carouse 1), which drains immediately and auto-advances to event_outcome.
+    useScriptedRandom([dieValue(2), dieValue(3)]);
+
     const c = seed();
     const user = userEvent.setup();
     let current = c;
@@ -63,7 +91,8 @@ describe('Pre-career education — outcome screens', () => {
     expect(screen.getByText(/Success/)).toBeInTheDocument();
     expect(screen.getByText(/You're in!/)).toBeInTheDocument();
 
-    // Continue to the pre-career event.
+    // Continue to the pre-career event. Scripted 2D = 5 → "party as much as study, gain
+    // Carouse 1" — no prompt — so the wizard auto-advances to event_outcome.
     await user.click(screen.getByRole('button', { name: /Continue → Pre-career event/ }));
     rerender(
       <PreCareerEducationStep
@@ -74,15 +103,14 @@ describe('Pre-career education — outcome screens', () => {
       />,
     );
 
-    // The pre-career 2D event roll is non-deterministic (uses Math.random). Depending on
-    // the result we either pause on a follow-up prompt ("Pre-career event" heading) or
-    // skip straight to the result screen ("Pre-career event — result" heading), and a
-    // sub-prompt may also surface its own heading. Constrain to level-2 headings so we
-    // match exactly one wizard-section heading regardless of which path we took.
-    expect(screen.getByRole('heading', { level: 2, name: /Pre-career event/ })).toBeInTheDocument();
+    // Now we should be on the result screen with the event 5 rulebook text.
+    expect(screen.getByRole('heading', { level: 2, name: /Pre-career event — result/ })).toBeInTheDocument();
+    expect(screen.getByText(/Event roll: 5/)).toBeInTheDocument();
+    expect(screen.getByText(/party as much as you study/i)).toBeInTheDocument();
   });
 
   it('shows a denial card after a failed entry, with an option to return to the chooser', async () => {
+    // Entry fails on manual 2 — no event roll happens, so no rng calls expected.
     const c = seed();
     const user = userEvent.setup();
     let current = c;
