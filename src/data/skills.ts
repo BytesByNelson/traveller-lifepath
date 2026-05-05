@@ -594,7 +594,7 @@ export const SKILLS: Record<SkillName, SkillDef> = {
     specs: [],
     hasParent: true,
     description:
-      'Wearing and operating spacesuits and environmental suits. Rarely needs a check under ordinary circumstances — possessing the skill is enough. If the Traveller lacks the suit\'s required level, they suffer DM−1 to all skill checks per missing level. Also permits operating advanced battle armour.',
+      'Wearing and operating spacesuits and environmental suits. Rarely needs a check under ordinary circumstances — possessing the skill is enough. If the Traveller does not have the requisite Vacc Suit skill for the suit they are wearing, they suffer DM−1 to all skill checks made while wearing a suit for each missing level (Errata, p72). Also permits operating advanced battle armour.',
     tasks: [
       { name: 'Perform a systems check on battle dress', difficulty: 'average', characteristic: 'EDU', timeframe: '1D minutes' },
     ],
