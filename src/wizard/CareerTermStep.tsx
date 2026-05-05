@@ -513,13 +513,22 @@ export function CareerTermStep({
     const trainingTable = career.flags?.basicTrainingFromAssignment
       ? career.assignments.find((a) => a.id === phase.ctx.assignmentId)?.skillTable ?? []
       : career.skillTables.find((t) => t.id === 'service_skills')?.rows ?? [];
-    const trainingSkillNames = Array.from(
-      new Set(
-        trainingTable
-          .map((r) => (r.effect.type === 'gain_skill' ? r.effect.skill.name : undefined))
-          .filter((n): n is SkillName => !!n),
-      ),
-    );
+    // Extract distinct skill refs from gain_skill rows on the service skills (or
+    // assignment table for basicTrainingFromAssignment careers). Specs are kept so
+    // a service-skill row like "Melee (unarmed)" → button "Melee (unarmed)" and
+    // applyBasicTraining gets the full SkillRef back, not a stripped name.
+    const seenKey = new Set<string>();
+    const trainingSkillRefs: { name: SkillName; spec?: string }[] = [];
+    for (const row of trainingTable) {
+      if (row.effect.type !== 'gain_skill') continue;
+      const ref = row.effect.skill;
+      const key = `${ref.name}|${ref.spec ?? ''}`;
+      if (seenKey.has(key)) continue;
+      seenKey.add(key);
+      trainingSkillRefs.push(ref.spec !== undefined ? { name: ref.name, spec: ref.spec } : { name: ref.name });
+    }
+    const formatRef = (r: { name: SkillName; spec?: string }) =>
+      r.spec ? `${r.name} (${r.spec})` : r.name;
     return (
       <section className="space-y-4">
         <h2 className="text-xl font-semibold">{career.name} — basic training</h2>
@@ -530,7 +539,7 @@ export function CareerTermStep({
             </p>
             <div className="rounded border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-700">
               <div className="text-[10px] uppercase tracking-wide text-gray-500 mb-1">Skills you'll learn</div>
-              <p>{trainingSkillNames.join(', ')}</p>
+              <p>{trainingSkillRefs.map(formatRef).join(', ')}</p>
             </div>
             <button
               onClick={() => {
@@ -551,21 +560,30 @@ export function CareerTermStep({
                 : `Subsequent term in ${career.name} — pick one service skill to gain at level 0. (Already-known skills won't bump.)`}
             </p>
             <ul className="grid grid-cols-2 gap-2">
-              {trainingSkillNames.map((name) => (
-                <li key={name}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const next = applyBasicTraining(character, phase.ctx.careerId, phase.ctx.assignmentId, termIndex, name);
-                      onChange(next);
-                      setPhase({ kind: 'pick_skill_table', ctx: phase.ctx, isExtra: false });
-                    }}
-                    className="w-full px-3 py-2 rounded border border-gray-300 hover:border-indigo-400 hover:bg-indigo-50 text-sm text-left"
-                  >
-                    {name}
-                  </button>
-                </li>
-              ))}
+              {trainingSkillRefs.map((ref) => {
+                const key = `${ref.name}|${ref.spec ?? ''}`;
+                return (
+                  <li key={key}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const next = applyBasicTraining(
+                          character,
+                          phase.ctx.careerId,
+                          phase.ctx.assignmentId,
+                          termIndex,
+                          ref,
+                        );
+                        onChange(next);
+                        setPhase({ kind: 'pick_skill_table', ctx: phase.ctx, isExtra: false });
+                      }}
+                      className="w-full px-3 py-2 rounded border border-gray-300 hover:border-indigo-400 hover:bg-indigo-50 text-sm text-left"
+                    >
+                      {formatRef(ref)}
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
             <button
               type="button"

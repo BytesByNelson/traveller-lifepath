@@ -8,6 +8,7 @@ import {
   type Effect,
   type SkillEntry,
   type SkillName,
+  type SkillRef,
   type SpeciesId,
 } from '../types';
 import {
@@ -215,7 +216,7 @@ export const applyBasicTraining = (
   careerId: CareerId,
   assignmentId: string,
   termIndex: number,
-  pickedSkillForLaterTerm?: SkillName,
+  pickedSkillForLaterTerm?: SkillRef,
 ): Character => {
   const career = CAREERS[careerId];
   const isFirst = termIndex === 0;
@@ -243,8 +244,12 @@ export const applyBasicTraining = (
       }
     }
   } else if (pickedSkillForLaterTerm) {
+    // Subsequent careers / terms grant ONE service skill at level 0. Preserve the
+    // spec so that, e.g., picking the "Melee (unarmed)" row in Drifter's service
+    // skills lands as Melee (unarmed) and not just generic Melee.
     skillEntries.push({
-      name: pickedSkillForLaterTerm,
+      name: pickedSkillForLaterTerm.name,
+      ...(pickedSkillForLaterTerm.spec !== undefined ? { spec: pickedSkillForLaterTerm.spec } : {}),
       level: 0,
       source: { kind: 'basic_training', career: careerId, termIndex },
     });
