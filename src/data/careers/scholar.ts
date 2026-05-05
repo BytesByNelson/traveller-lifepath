@@ -184,7 +184,8 @@ export const scholar: Career = {
           type: 'choice',
           prompt: 'Pick one',
           options: [
-            { label: 'Salvage and leave', effects: [{ type: 'eject_career' }] },
+            // Mishap auto-deducted 1 benefit roll; "keep Benefit roll" path offsets that.
+            { label: 'Salvage and leave', effects: [{ type: 'gain_benefit_rolls', count: 1 }, { type: 'eject_career' }] },
             { label: 'Restart', effects: [{ type: 'lose_benefit_rolls', count: 'all' }] },
           ],
         },

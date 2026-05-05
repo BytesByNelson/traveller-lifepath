@@ -139,13 +139,12 @@ export const navy: Career = {
         {
           type: 'check',
           roll: { kind: 'char', char: 'INT', target: 8 },
-          // Honourable discharge keeps the benefit roll — no mechanical penalty.
-          onSuccess: [{ type: 'note', text: 'Honourably discharged; keep this term\'s Benefit roll.' }],
-          // Court-martialled = lose this term's benefit roll.
-          onFailure: [
-            { type: 'note', text: 'Court-martialled and discharged.' },
-            { type: 'lose_benefit_rolls', count: 1 },
+          // Mishap auto-deducts 1 benefit roll; honourable discharge offsets that to "keep".
+          onSuccess: [
+            { type: 'note', text: 'Honourably discharged; keep this term\'s Benefit roll.' },
+            { type: 'gain_benefit_rolls', count: 1 },
           ],
+          onFailure: [{ type: 'note', text: 'Court-martialled and discharged.' }],
         },
         { type: 'eject_career' },
       ],
@@ -159,7 +158,15 @@ export const navy: Career = {
           prompt: 'Were you responsible?',
           options: [
             { label: 'Yes', effects: [{ type: 'extra_skill_roll', count: 1, tables: 'any' }] },
-            { label: 'No', effects: [{ type: 'gain_connection', connection: 'enemy' }] },
+            {
+              label: 'No',
+              // Per the rulebook the "not responsible" path keeps the term's benefit roll;
+              // mishap auto-deducted 1, so offset.
+              effects: [
+                { type: 'gain_connection', connection: 'enemy' },
+                { type: 'gain_benefit_rolls', count: 1 },
+              ],
+            },
           ],
         },
         { type: 'eject_career' },

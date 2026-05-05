@@ -26,6 +26,47 @@ export function CharacteristicsStep({
   const rollAll = () => onChange(rollAllCharacteristics(character, Math.random));
   const setManual = (code: CharCode, value: number) =>
     onChange(setCharacteristic(character, code, value));
+  /** Re-roll one characteristic in app mode. Updates baseCharacteristics, applies species
+   *  modifiers, and appends to rollLog with a "(re-roll)" tag so the audit shows which
+   *  values were re-rolled vs. originally rolled. */
+  const reroll = (code: CharCode) => {
+    const { total } = roll2d(Math.random);
+    const newBase = { ...character.baseCharacteristics, [code]: total };
+    onChange({
+      ...character,
+      baseCharacteristics: newBase,
+      characteristics: { ...character.characteristics, [code]: Math.max(1, total + (mods[code] ?? 0)) },
+      rollLog: [
+        ...character.rollLog,
+        {
+          id: crypto.randomUUID(),
+          ts: Date.now(),
+          context: `Roll ${code} (re-roll)`,
+          result: total,
+          source: 'rng',
+        },
+      ],
+    });
+  };
+  /** Re-roll PSI in app mode (used after Roll all). */
+  const rerollPsi = () => {
+    const { total } = roll2d(Math.random);
+    const value = Math.max(0, total);
+    onChange({
+      ...character,
+      psi: { max: value, current: value },
+      rollLog: [
+        ...character.rollLog,
+        {
+          id: crypto.randomUUID(),
+          ts: Date.now(),
+          context: 'Roll PSI (re-roll)',
+          result: value,
+          source: 'rng',
+        },
+      ],
+    });
+  };
   const rollPsiOnly = () => {
     const { total } = roll2d(Math.random);
     const value = Math.max(0, total);
@@ -138,9 +179,24 @@ export function CharacteristicsStep({
                       </button>
                     </>
                   ) : (
-                    <span className="text-xs text-gray-400">
-                      {character.rollLog.some((r) => r.context === `Roll ${code}`) ? 'rolled' : '— pending —'}
-                    </span>
+                    (() => {
+                      const hasRolled = character.rollLog.some(
+                        (r) => r.context === `Roll ${code}` || r.context === `Roll ${code} (re-roll)`,
+                      );
+                      if (!hasRolled) {
+                        return <span className="text-xs text-gray-400">— pending —</span>;
+                      }
+                      return (
+                        <button
+                          type="button"
+                          onClick={() => reroll(code)}
+                          className="text-xs px-2 py-0.5 border border-gray-300 rounded hover:bg-gray-50 text-gray-600"
+                          title={`Re-roll ${CHAR_NAMES[code]} — appends to roll log, replaces value.`}
+                        >
+                          Re-roll
+                        </button>
+                      );
+                    })()
                   )}
                 </td>
               </tr>
@@ -163,7 +219,14 @@ export function CharacteristicsStep({
               <td className="text-right">
                 {rollMode === 'app' ? (
                   character.psi ? (
-                    <span className="text-xs text-gray-400">rolled</span>
+                    <button
+                      type="button"
+                      onClick={rerollPsi}
+                      className="text-xs px-2 py-0.5 border border-amber-400 bg-amber-50 rounded hover:bg-amber-100 text-amber-900"
+                      title="Re-roll 2D for PSI"
+                    >
+                      Re-roll
+                    </button>
                   ) : (
                     <button
                       type="button"

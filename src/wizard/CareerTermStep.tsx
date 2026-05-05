@@ -782,6 +782,11 @@ export function CareerTermStep({
         <div className="flex gap-2">
           <button
             onClick={() => {
+              // commission_offer is reached only via the event phase, which already
+              // synced its engine.character to the parent via onChange before transitioning.
+              // So `character` here is the latest. If a future intermediate phase ever
+              // applies effects between event → commission_offer without onChange, switch
+              // to passing phase.engine.character forward in the phase state.
               const state = startCommission(character, career, termsInCareer(character, phase.ctx.careerId), Math.random);
               setPhase({ kind: 'commission_check', ctx: { ...phase.ctx, commissionAttempted: true }, engine: state });
             }}
@@ -847,6 +852,9 @@ export function CareerTermStep({
         <div className="flex gap-2">
           <button
             onClick={() => {
+              // Same caveat as commission_offer: we rely on the event phase having synced its
+              // engine.character to the parent (it does). If a future intermediate phase ever
+              // mutates without onChange, route phase.engine.character through the phase state.
               const next = startAdvancement(character, career, phase.ctx.assignmentId, 0, Math.random);
               setPhase({ kind: 'advancement_check', ctx: { ...phase.ctx, advancementAttempted: true }, engine: next });
             }}

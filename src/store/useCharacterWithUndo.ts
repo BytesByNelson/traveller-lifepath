@@ -22,6 +22,18 @@ const subscribe = (id: string) => (l: () => void) => {
 /**
  * Like useCharacter, but every setCharacter call records a snapshot of the
  * previous state on the in-memory undo stack. Returns an undo() helper.
+ *
+ * Known limitation: undo only restores character state. The wizard's local React
+ * state (phase, engine queue, and pending prompts) lives in component useState and
+ * isn't part of the snapshot. So undoing across phases that don't change
+ * wizardState.step (e.g. entry_check → entry_outcome inside PreCareerEducationStep)
+ * leaves the UI on the post-undo phase showing pre-undo data. Cross-step undo
+ * works correctly because React unmounts and remounts the WizardStep component,
+ * resetting its local state.
+ *
+ * Workaround when the limitation bites: navigate to the Travellers list and back
+ * to the in-progress character — the WizardStep remounts with fresh local state
+ * derived from the (now-undone) character.
  */
 export const useCharacterWithUndo = (
   id: string,

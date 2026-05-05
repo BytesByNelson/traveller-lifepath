@@ -137,10 +137,8 @@ export const agent: Career = {
           options: [
             {
               label: 'Accept — leave the career without further penalty (lose this term\'s Benefit roll).',
-              effects: [
-                { type: 'lose_benefit_rolls', count: 1 },
-                { type: 'eject_career' },
-              ],
+              // Engine auto-applies lose_benefit_rolls for any mishap.
+              effects: [{ type: 'eject_career' }],
             },
             {
               label: 'Refuse — Injury (twice, lower), gain an Enemy and one level in any skill.',
@@ -162,8 +160,9 @@ export const agent: Career = {
         {
           type: 'check',
           roll: { kind: 'skill', skill: { name: 'Advocate' }, target: 8 },
-          onSuccess: [{ type: 'note', text: 'Keep this term\'s Benefit roll.' }],
-          onFailure: [{ type: 'lose_benefit_rolls', count: 1 }],
+          // Engine's mishap fold already deducts 1 benefit roll. Success offsets that.
+          onSuccess: [{ type: 'gain_benefit_rolls', count: 1 }],
+          onFailure: [],
           onNaturalTwo: [{ type: 'force_career', career: 'prisoner', nextTerm: true }],
         },
         { type: 'eject_career' },

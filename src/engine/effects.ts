@@ -986,7 +986,14 @@ const rollOnTable = (state: EngineState, table: TableRef, rng: Rng): EngineState
       const r = roll1d(rng);
       const row = career.mishaps.find((m) => m.roll === r);
       if (!row) return state;
-      return enqueue(pushContext(state, `${career.name} Mishap → ${r}`), row.effects);
+      // Mongoose 2022 page 19: any mishap costs the term's benefit roll. Apply it
+      // automatically here so individual mishap rows in the data don't have to repeat
+      // the rule (and so mishaps that just say "ejected" without an explicit
+      // lose_benefit_rolls still cost the player correctly).
+      return enqueue(pushContext(state, `${career.name} Mishap → ${r}`), [
+        { type: 'lose_benefit_rolls', count: 1 },
+        ...row.effects,
+      ]);
     }
     case 'career_assignment_skills': {
       const career = CAREERS[table.career as keyof typeof CAREERS];

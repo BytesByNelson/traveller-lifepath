@@ -115,6 +115,13 @@ export function PreCareerEducationStep({
             }}
           />
         </div>
+        {uniBlocked || armyBlocked || marineBlocked || navyBlocked ? (
+          <p className="text-xs text-gray-500 italic">
+            Greyed-out tracks are <strong>hard requirements</strong> per Mongoose 2022 — your stat
+            is below the minimum and the academy won't accept the application. The entry roll
+            applies on top of the stat gate (you must qualify <em>and</em> succeed at the roll).
+          </p>
+        ) : null}
         {uniBlocked && armyBlocked && marineBlocked && navyBlocked ? (
           <p className="text-xs text-gray-500 italic">
             None of the academies will accept this Traveller — proceed straight to a career.
