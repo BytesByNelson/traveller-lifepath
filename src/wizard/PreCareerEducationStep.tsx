@@ -84,7 +84,9 @@ export function PreCareerEducationStep({
             disabled={armyBlocked}
             disabledReason={armyBlocked ? `Requires END ${armyReq}+` : undefined}
             onClick={() => {
-              const state = startMilitaryAcademyEntry(character, 'army', termIndex, Math.random);
+              const marked = markPreCareerEducationTaken(character);
+              onChange(marked);
+              const state = startMilitaryAcademyEntry(marked, 'army', termIndex, Math.random);
               setPhase({ kind: 'entry_check', track: 'army', engine: state });
             }}
           />
@@ -94,7 +96,9 @@ export function PreCareerEducationStep({
             disabled={marineBlocked}
             disabledReason={marineBlocked ? `Requires END ${marineReq}+` : undefined}
             onClick={() => {
-              const state = startMilitaryAcademyEntry(character, 'marine', termIndex, Math.random);
+              const marked = markPreCareerEducationTaken(character);
+              onChange(marked);
+              const state = startMilitaryAcademyEntry(marked, 'marine', termIndex, Math.random);
               setPhase({ kind: 'entry_check', track: 'marine', engine: state });
             }}
           />
@@ -104,7 +108,9 @@ export function PreCareerEducationStep({
             disabled={navyBlocked}
             disabledReason={navyBlocked ? `Requires INT ${navyReq}+` : undefined}
             onClick={() => {
-              const state = startMilitaryAcademyEntry(character, 'navy', termIndex, Math.random);
+              const marked = markPreCareerEducationTaken(character);
+              onChange(marked);
+              const state = startMilitaryAcademyEntry(marked, 'navy', termIndex, Math.random);
               setPhase({ kind: 'entry_check', track: 'navy', engine: state });
             }}
           />
@@ -147,9 +153,10 @@ export function PreCareerEducationStep({
         <button
           disabled={!phase.level0 || !phase.level1 || phase.level0 === phase.level1}
           onClick={() => {
-            const next = grantSkillsForUniversity(character, phase.level0!, phase.level1!);
-            onChange(next);
-            const state = startUniversityEntry(next, termIndex, Math.random);
+            const withSkills = grantSkillsForUniversity(character, phase.level0!, phase.level1!);
+            const marked = markPreCareerEducationTaken(withSkills);
+            onChange(marked);
+            const state = startUniversityEntry(marked, termIndex, Math.random);
             setPhase({ kind: 'entry_check', track: 'university', engine: state });
           }}
           className="px-4 py-2 rounded bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 disabled:opacity-50"
@@ -630,6 +637,17 @@ function describeGraduationBenefits(
     headline: 'Failed graduation.',
     lines: [],
     followup: 'No academy benefits. Continue to a career of your choice.',
+  };
+}
+
+function markPreCareerEducationTaken(c: Character): Character {
+  if (c.wizardState?.preCareerEducationTaken) return c;
+  return {
+    ...c,
+    wizardState: {
+      ...(c.wizardState ?? { step: 'pre_career_education' }),
+      preCareerEducationTaken: true,
+    },
   };
 }
 

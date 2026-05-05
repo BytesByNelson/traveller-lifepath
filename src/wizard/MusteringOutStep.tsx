@@ -167,14 +167,21 @@ export function MusteringOutStep({
       </div>
 
       <button
+        disabled={totalRemaining > 0}
         onClick={() => {
           const next: Character = pension > 0 ? { ...character, pension } : character;
           onChange(next);
           onDone();
         }}
-        className="px-4 py-2 rounded bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700"
+        className="px-4 py-2 rounded bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
+        title={
+          totalRemaining > 0
+            ? `Spend your remaining ${totalRemaining} benefit roll${totalRemaining === 1 ? '' : 's'} before continuing.`
+            : undefined
+        }
       >
         Done with mustering out → Skill package
+        {totalRemaining > 0 ? <span className="ml-1 text-xs opacity-90">({totalRemaining} roll{totalRemaining === 1 ? '' : 's'} left)</span> : null}
       </button>
     </section>
   );

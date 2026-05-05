@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useCharacterWithUndo } from '../store/useCharacterWithUndo';
+import { getCharacter } from '../store/characters';
 import { BasicsStep } from '../wizard/BasicsStep';
 import { CharacteristicsStep } from '../wizard/CharacteristicsStep';
 import { BackgroundSkillsStep } from '../wizard/BackgroundSkillsStep';
@@ -35,8 +36,13 @@ export function WizardPage() {
   }
 
   const step = character.wizardState?.step ?? 'basics';
-  const setStep = (s: WizardStep) =>
-    setCharacter({ ...character, wizardState: { ...(character.wizardState ?? {}), step: s } });
+  // Read the current character from the store cache rather than the render closure so
+  // a setStep call right after an onChange (e.g. BetweenTerms "Continue same") doesn't
+  // clobber the wizardState fields that onChange just wrote.
+  const setStep = (s: WizardStep) => {
+    const cur = getCharacter(id) ?? character;
+    setCharacter({ ...cur, wizardState: { ...(cur.wizardState ?? {}), step: s } });
+  };
 
   return (
     <main className="max-w-5xl mx-auto p-3 md:p-6 grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">

@@ -25,7 +25,7 @@ import {
   UNIVERSITY,
   MILITARY_ACADEMY,
 } from '../data';
-import { applySpeciesModifiers, charDM } from './selectors';
+import { applySpeciesModifiers, charDM, getAge } from './selectors';
 import {
   blankEngineState,
   drain,
@@ -190,7 +190,7 @@ export const startQualification = (
     if (dm !== 0) dmsOnQual.push({ type: 'next_qualification_dm', dm });
   }
   // Age DM
-  const age = 18 + 4 * c.careerHistory.length;
+  const age = getAge(c);
   if (career.qualification.ageDM && age >= career.qualification.ageDM.atLeastAge) {
     dmsOnQual.push({ type: 'next_qualification_dm', dm: career.qualification.ageDM.dm });
   }
@@ -380,7 +380,7 @@ export const qualificationDMs = (
       value: career.qualification.perPreviousCareer * c.careerHistory.length,
     });
   }
-  const age = 18 + 4 * c.careerHistory.length;
+  const age = getAge(c);
   if (career.qualification.ageDM && age >= career.qualification.ageDM.atLeastAge) {
     dms.push({ source: `Age ${age}`, value: career.qualification.ageDM.dm });
   }
@@ -537,7 +537,12 @@ export const startUniversityEntry = (c: Character, termIndex: number, rng: Rng):
   if (c.characteristics.SOC >= 9) dms.push({ type: 'next_qualification_dm', dm: UNIVERSITY.entryDMs.socAtLeast9 });
   let state = blankEngineState(c);
   state = pushContext(state, 'University entry');
-  state = enqueue(state, [...dms, { type: 'check', roll: UNIVERSITY.entry.check, onSuccess: [], onFailure: [] }]);
+  state = enqueue(state, [
+    ...dms,
+    // Per Mongoose 2022: passing the entry check immediately grants the onEnter effects
+    // (EDU +1 from attending). A separate +1 is granted on graduation.
+    { type: 'check', roll: UNIVERSITY.entry.check, onSuccess: [...UNIVERSITY.onEnter], onFailure: [] },
+  ]);
   state = drain(state, rng);
   return state;
 };

@@ -126,6 +126,13 @@ export type WizardState = {
    */
   forceFailPreCareerGraduation?: boolean;
   /**
+   * True once the Traveller has entered any pre-career track (university or any
+   * military academy). Per Mongoose 2022 the academy / university takes a 4-year
+   * term whether the player passes or fails, so age calculations need to count
+   * this in addition to careerHistory.length.
+   */
+  preCareerEducationTaken?: boolean;
+  /**
    * Roll mode chosen on the Basics step. 'app' lets the wizard roll dice; 'manual' has
    * the player enter their own results. Persisted so subsequent rolls during the wizard
    * default to the same control. Undefined means "ask before showing controls."

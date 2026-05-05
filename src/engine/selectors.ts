@@ -3,8 +3,15 @@ import { SPECIES, characteristicDM } from '../data';
 
 const skillKey = (s: SkillRef): string => `${s.name}|${s.spec ?? ''}`;
 
-/** Age in years given career history. */
-export const getAge = (c: Character): number => 18 + 4 * c.careerHistory.length;
+/**
+ * Age in years given career history. Pre-career education (university or any
+ * military academy) takes a 4-year term whether the player passes or fails, so
+ * count it in addition to careerHistory.length when the wizardState flag is set.
+ */
+export const getAge = (c: Character): number => {
+  const academyTerms = c.wizardState?.preCareerEducationTaken ? 1 : 0;
+  return 18 + 4 * (c.careerHistory.length + academyTerms);
+};
 
 /** Apply species modifiers to base rolled characteristics. May raise alien stats above 15. */
 export const applySpeciesModifiers = (

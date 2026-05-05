@@ -22,6 +22,7 @@ import {
   CATALOGUE,
   INJURY_TABLE,
   LIFE_EVENTS,
+  SKILLS,
   UNUSUAL_EVENTS,
 } from '../data';
 
@@ -553,8 +554,26 @@ export const resolveWager = (
 
 const apply = (state: EngineState, e: Effect, rng: Rng): EngineState => {
   switch (e.type) {
-    case 'gain_skill':
+    case 'gain_skill': {
+      // For specRequired parent skills (Profession, Science), gain at level 1+ has no
+      // meaning without a specialization — prompt the player to pick one. Other parent
+      // skills (Gun Combat, Athletics, Tactics, Melee) grant the parent at the resolved
+      // level, which is meaningful per the rulebook.
+      const def = SKILLS[e.skill.name];
+      if (def?.specRequired && def.specs.length > 0 && !e.skill.spec) {
+        return {
+          ...state,
+          prompt: {
+            kind: 'pick_skill',
+            level: e.level,
+            from: def.specs.map((spec) => ({ name: e.skill.name, spec })),
+            source: { kind: 'manual' },
+            title: `${e.skill.name} — pick specialization`,
+          },
+        };
+      }
       return grantSkill(state, e.skill, e.level, { kind: 'manual' });
+    }
     case 'gain_skill_choice':
       return {
         ...state,

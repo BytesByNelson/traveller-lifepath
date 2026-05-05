@@ -451,6 +451,7 @@ export const SKILLS: Record<SkillName, SkillDef> = {
     name: 'Profession',
     specs: ['belter', 'biologicals', 'civil engineering', 'construction', 'hydroponics', 'polymers'],
     hasParent: true,
+    specRequired: true,
     description:
       'Trained in producing useful goods or services. Each specialty must be learned individually — levels in Profession do not grant other specialties at level 0. A Profession check earns Cr250 × Effect per month on a planet that supports that trade.',
     specDescriptions: {
@@ -479,6 +480,7 @@ export const SKILLS: Record<SkillName, SkillDef> = {
     name: 'Science',
     specs: ['archaeology', 'astronomy', 'biology', 'chemistry', 'cosmology', 'cybernetics', 'economics', 'genetics', 'history', 'linguistics', 'philosophy', 'physics', 'planetology', 'psionicology', 'psychology', 'robotics', 'sophontology', 'xenology'],
     hasParent: true,
+    specRequired: true,
     description:
       'Knowledge and practical application of one or more scientific fields. Includes archaeology of ancient civilisations and the Ancients.',
     specDescriptions: {

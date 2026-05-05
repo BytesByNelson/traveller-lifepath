@@ -10,6 +10,7 @@ import {
   isAgingDue,
   qualificationDMs,
   roll1d,
+  rollDraft,
   startAdvancement,
   startAging,
   startCommission,
@@ -449,16 +450,56 @@ export function CareerTermStep({
             <div className="rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
               <p className="font-medium">Did not qualify.</p>
               <p className="mt-1">
-                You can try a different career, take the Drifter career (always qualifies), or be drafted
-                if you're attempting your first term — pick a path on the next screen.
+                Per the rulebook you have three options: try a different career (subject to the
+                previous-careers DM), take the Drifter career (always qualifies, no roll), or
+                be drafted into a service rolled randomly on the Draft table.
               </p>
             </div>
-            <button
-              onClick={() => setPhase({ kind: 'pick_career' })}
-              className="px-4 py-2 rounded bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700"
-            >
-              Back to career selection
-            </button>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <button
+                onClick={() => setPhase({ kind: 'pick_career' })}
+                className="px-3 py-2 rounded border border-gray-300 hover:bg-gray-50 text-left"
+              >
+                <div className="font-medium text-sm">Try a different career</div>
+                <div className="text-xs text-gray-600">Pick another career and qualify again.</div>
+              </button>
+              <button
+                onClick={() => setPhase({ kind: 'pick_assignment', careerId: 'drifter' })}
+                className="px-3 py-2 rounded border border-gray-300 hover:bg-gray-50 text-left"
+              >
+                <div className="font-medium text-sm">Take Drifter</div>
+                <div className="text-xs text-gray-600">Always qualifies — pick an assignment.</div>
+              </button>
+              <button
+                onClick={() => {
+                  const drafted = rollDraft(Math.random);
+                  if (!drafted) return; // 1D always rolls 1-6 so this won't hit, but typescript needs it.
+                  // Persist the rolled draft outcome on the character so the assignment screen
+                  // gets the right starting career, and the rollLog records the draft 1D.
+                  const log = {
+                    id: crypto.randomUUID(),
+                    ts: Date.now(),
+                    context: `Draft → ${drafted.roll} (${drafted.career}${drafted.assignment ? `, ${drafted.assignment}` : ''})`,
+                    natural: drafted.roll,
+                    result: drafted.roll,
+                    source: 'rng' as const,
+                  };
+                  onChange({
+                    ...character,
+                    rollLog: [...character.rollLog, log],
+                    wizardState: {
+                      ...(character.wizardState ?? { step: 'career_term' }),
+                      forcedNextCareer: { career: drafted.career, ...(drafted.assignment ? { assignment: drafted.assignment } : {}) },
+                    },
+                  });
+                  setPhase({ kind: 'pick_assignment', careerId: drafted.career });
+                }}
+                className="px-3 py-2 rounded border border-amber-300 bg-amber-50 hover:bg-amber-100 text-left"
+              >
+                <div className="font-medium text-sm">Be drafted</div>
+                <div className="text-xs text-gray-700">Roll 1D on the Draft table — random service assignment.</div>
+              </button>
+            </div>
           </>
         )}
       </section>

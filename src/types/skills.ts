@@ -117,6 +117,14 @@ export type SkillDef = {
   specs: readonly string[];
   /** When true, the skill is gained in the parent form (e.g. Admin) without a spec. */
   hasParent: boolean;
+  /**
+   * When true, gaining this skill at level 1+ always requires a specialization.
+   * Profession and Science work this way — "Profession 1" with no spec doesn't make
+   * sense per the rulebook. Engine prompts for spec when applying gain_skill on
+   * one of these. Skills with specs but parent-meaningful semantics (Gun Combat,
+   * Athletics, Tactics, Melee) leave this off so level 1 in the parent is fine.
+   */
+  specRequired?: boolean;
   /** Skills that may not be raised via training (or, for JoaT, ever). */
   notTrainable?: boolean;
   /** Plain-English description from the rulebook. */
