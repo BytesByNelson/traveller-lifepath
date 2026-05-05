@@ -11,9 +11,11 @@ import {
 } from './persistence';
 
 /**
- * In-memory cache backed by localStorage. Reads on first access, writes through
- * synchronously on every mutation. The cache is the source of truth for UI subscribers;
- * persistence runs alongside it so reloads recover state.
+ * In-memory cache backed by localStorage. Reads on first access; writes coalesce —
+ * the cache mutates synchronously (so React subscribers see the new value immediately
+ * and undo still works), but the localStorage flush is debounced so typing in a text
+ * field doesn't fire one write per keystroke. A pagehide / beforeunload listener
+ * flushes any pending writes before the tab closes.
  */
 
 type Listener = () => void;
@@ -24,6 +26,54 @@ const cache = {
   listeners: new Set<Listener>(),
   /** Cached snapshot for useCharacterList. Invalidated on every upsert/delete. */
   listSnapshot: undefined as Character[] | undefined,
+};
+
+/* ─────────────── Debounced persistence ─────────────── */
+
+const SAVE_DEBOUNCE_MS = 250;
+const pendingSaves = new Map<string, Character>();
+let saveTimer: ReturnType<typeof setTimeout> | undefined;
+let saveDebounceEnabled = true;
+let unloadHookAttached = false;
+
+/** Tests that read localStorage directly should call this with false to keep saves sync. */
+export const setSaveDebounceForTesting = (enabled: boolean): void => {
+  saveDebounceEnabled = enabled;
+};
+
+const flushPendingSaves = (): void => {
+  if (saveTimer !== undefined) {
+    clearTimeout(saveTimer);
+    saveTimer = undefined;
+  }
+  for (const [, c] of pendingSaves) saveCharacter(c);
+  pendingSaves.clear();
+};
+
+const scheduleSave = (c: Character): void => {
+  if (!saveDebounceEnabled) {
+    saveCharacter(c);
+    return;
+  }
+  pendingSaves.set(c.id, c);
+  attachUnloadHook();
+  if (saveTimer !== undefined) return;
+  saveTimer = setTimeout(() => {
+    saveTimer = undefined;
+    flushPendingSaves();
+  }, SAVE_DEBOUNCE_MS);
+};
+
+const attachUnloadHook = (): void => {
+  if (unloadHookAttached) return;
+  if (typeof window === 'undefined') return;
+  unloadHookAttached = true;
+  // pagehide fires reliably on tab close / navigation away (better than beforeunload on iOS).
+  window.addEventListener('pagehide', flushPendingSaves);
+  // visibilitychange catches the user switching tabs — flush so other tabs see the data.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') flushPendingSaves();
+  });
 };
 
 const invalidateListSnapshot = (): void => {
@@ -94,13 +144,20 @@ export const resetStoreForTesting = (): void => {
   cache.loaded = false;
   cache.listeners.clear();
   cache.listSnapshot = undefined;
+  pendingSaves.clear();
+  if (saveTimer !== undefined) {
+    clearTimeout(saveTimer);
+    saveTimer = undefined;
+  }
 };
 
 export const upsertCharacter = (c: Character): void => {
   ensureLoaded();
   const prev = cache.characters.get(c.id);
   cache.characters.set(c.id, c);
-  saveCharacter(c);
+  // Debounced — cache update is synchronous so UI/undo see the new value immediately,
+  // but localStorage flushes only after 250ms of idle (or on tab hide / unload).
+  scheduleSave(c);
   invalidateListSnapshot();
   emit();
   // Skip logging when only text fields (name, homeworld, notes) changed — typing in the
@@ -149,6 +206,8 @@ const hasInterestingDelta = (a: Character, b: Character): boolean => {
 export const deleteCharacter = (id: string): void => {
   ensureLoaded();
   cache.characters.delete(id);
+  // If this character had a debounced save pending, drop it — we're deleting, not persisting.
+  pendingSaves.delete(id);
   deleteFromStorage(id);
   invalidateListSnapshot();
   emit();
