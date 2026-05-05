@@ -508,7 +508,10 @@ export function CareerTermStep({
 
   /* ─────── basic training ─────── */
   if (phase.kind === 'basic_training') {
-    const isFirstTermInCareer = termsInCareer(character, phase.ctx.careerId) === 0;
+    // Per Mongoose 2022 p17, "all six service skills at level 0" is granted only on the
+    // player's overall FIRST career. Subsequent careers (even the first time entering
+    // them) grant just one service skill of the player's choice.
+    const isOverallFirstCareer = character.careerHistory.length === 0;
     const trainingTable = career.flags?.basicTrainingFromAssignment
       ? career.assignments.find((a) => a.id === phase.ctx.assignmentId)?.skillTable ?? []
       : career.skillTables.find((t) => t.id === 'service_skills')?.rows ?? [];
@@ -522,10 +525,10 @@ export function CareerTermStep({
     return (
       <section className="space-y-4">
         <h2 className="text-xl font-semibold">{career.name} — basic training</h2>
-        {isFirstTermInCareer ? (
+        {isOverallFirstCareer ? (
           <>
             <p className="text-sm text-gray-600">
-              First term in {career.name}: you gain all service skills at level 0 (basic training).
+              Your first career — you gain all of {career.name}'s service skills at level 0 (full basic training).
             </p>
             <div className="rounded border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-700">
               <div className="text-[10px] uppercase tracking-wide text-gray-500 mb-1">Skills you'll learn</div>
@@ -545,7 +548,9 @@ export function CareerTermStep({
         ) : (
           <>
             <p className="text-sm text-gray-600">
-              Subsequent term in {career.name}: pick one service skill to gain at level 0. (Already-known skills won't bump.)
+              {termsInCareer(character, phase.ctx.careerId) === 0
+                ? `${career.name} isn't your first career — basic training is reduced to one service skill of your choice at level 0.`
+                : `Subsequent term in ${career.name} — pick one service skill to gain at level 0. (Already-known skills won't bump.)`}
             </p>
             <ul className="grid grid-cols-2 gap-2">
               {trainingSkillNames.map((name) => (
