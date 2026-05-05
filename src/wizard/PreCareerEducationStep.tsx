@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import type { Character, RollLogEntry, SkillName } from '../types';
 import { MILITARY_ACADEMY, PRE_CAREER_EVENTS, UNIVERSITY } from '../data';
+import { usePhaseUndoReset } from './usePhaseUndoReset';
 import {
   startMilitaryAcademyEntry,
   startMilitaryAcademyGraduation,
@@ -57,6 +58,10 @@ export function PreCareerEducationStep({
     debug('wizard:precareer', 'phase →', p.kind, p);
     _setPhase(p);
   };
+  // If undo pops the character back, walk the phase back to the chooser so the
+  // screen stays consistent with the now-restored character state.
+  const resetToChoose = useCallback(() => _setPhase({ kind: 'choose' }), []);
+  usePhaseUndoReset(character, resetToChoose);
   const termIndex = character.careerHistory.length;
 
   if (phase.kind === 'choose') {

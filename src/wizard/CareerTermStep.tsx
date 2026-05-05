@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import type { CareerId, CareerTerm, Character, SkillName } from '../types';
 import { CAREERS } from '../data';
+import { usePhaseUndoReset } from './usePhaseUndoReset';
 import {
   agingCrisisChars,
   applyBasicTraining,
@@ -149,6 +150,10 @@ export function CareerTermStep({
     debug('wizard:career-term', 'phase →', p.kind, p);
     _setPhase(p);
   };
+  // Undo pops the character back; reset to pick_career so the wizard never sits on
+  // a stale phase that references rolls / commits that no longer exist on the sheet.
+  const resetToPickCareer = useCallback(() => _setPhase({ kind: 'pick_career' }), []);
+  usePhaseUndoReset(character, resetToPickCareer);
   const [focusedCareer, setFocusedCareer] = useState<CareerId | undefined>(undefined);
   const [careerDetailsOpen, setCareerDetailsOpen] = useState(true);
 

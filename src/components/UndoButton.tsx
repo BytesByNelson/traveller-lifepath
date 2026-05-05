@@ -13,7 +13,7 @@ export function UndoButton({ onUndo, disabled, depth = 0, className = '' }: Prop
       title={
         disabled
           ? 'Nothing to undo'
-          : `Undo last action (${depth} in stack). If the wizard looks stuck after undoing, return to the Travellers list and reopen this character — the step rebuilds from the saved state.`
+          : `Undo last action (${depth} in stack). The wizard rewinds to the relevant picker — you'll re-roll or re-pick from there.`
       }
       className={
         className ||
