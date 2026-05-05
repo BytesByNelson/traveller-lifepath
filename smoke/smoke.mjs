@@ -60,11 +60,24 @@ try {
 
   // Basics step
   await page.fill('input[placeholder*="Traveller"]', 'Smoke Test');
+  // Roll mode picker (required gate; Continue is disabled until one is selected).
+  await page.click('button:has-text("Roll for me")');
+  record('Roll-mode picker selectable', true);
   await page.click('button:has-text("Continue → Characteristics")');
   record('Basics → Characteristics', await page.locator('h2:has-text("Characteristics")').isVisible());
 
   // ─── 3. Roll all characteristics ───
   await page.click('button:has-text("Roll all")');
+  // After Roll all in app mode, every char row should show a "Re-roll" button.
+  const rerollCount = await page.locator('button:has-text("Re-roll")').count();
+  record('Re-roll buttons appear after Roll all (app mode)', rerollCount >= 6, `${rerollCount} buttons`);
+
+  // Click one re-roll and verify the rollLog gains a "(re-roll)" entry.
+  await page.locator('button:has-text("Re-roll")').first().click();
+  await page.waitForTimeout(150);
+  const hasRerollLog = await page.locator('aside ol li').filter({ hasText: '(re-roll)' }).count();
+  record('Re-roll appends a (re-roll) entry to the roll log', hasRerollLog > 0, `${hasRerollLog} entries`);
+
   // After rolling, Continue should be enabled and 6 chars should have non-default values
   await page.click('button:has-text("Continue → Background skills")');
   record('Characteristics rolled and step advanced',
@@ -445,7 +458,43 @@ try {
     await page.emulateMedia({ media: 'screen' });
   }
 
-  // ─── 13. Verify no JS console errors ───
+  // ─── 13. Footer disclaimer + Buy Me a Coffee link ───
+  await page.emulateMedia({ media: 'screen' });
+  await page.goto(URL, { waitUntil: 'networkidle' });
+  {
+    const footer = page.locator('footer');
+    const footerVisible = await footer.isVisible();
+    record('Footer renders site-wide', footerVisible);
+    if (footerVisible) {
+      const text = (await footer.innerText()).toLowerCase();
+      record('Footer contains the unofficial / fan-tool disclaimer',
+        text.includes('unofficial fan tool') && text.includes('mongoose'));
+      const bmc = footer.locator('a[href*="buymeacoffee.com/bytesbynelson"]');
+      record('Footer includes Buy Me a Coffee link', (await bmc.count()) > 0);
+    }
+  }
+
+  // ─── 14. GoatCounter analytics script tag is wired ───
+  {
+    const goatcounterPresent = await page.evaluate(() => {
+      const scripts = Array.from(document.querySelectorAll('script'));
+      return scripts.some(
+        (s) =>
+          s.getAttribute('data-goatcounter') === 'https://traveller-lifepath.goatcounter.com/count' ||
+          s.src?.includes('gc.zgo.at/count.js'),
+      );
+    });
+    record('GoatCounter analytics script tag present', goatcounterPresent);
+    const noOnload = await page.evaluate(() => {
+      // The HTML inline script set window.goatcounter = { no_onload: true } before the
+      // async script loaded. The async script may overwrite the object, but no_onload
+      // should still be true (or the object should at least exist).
+      return typeof window.goatcounter !== 'undefined';
+    });
+    record('window.goatcounter is initialised', noOnload);
+  }
+
+  // ─── 15. Verify no JS console errors ───
   record('No JS console errors', errors.length === 0,
     errors.length === 0 ? '' : errors.slice(0, 3).join(' | '));
 
