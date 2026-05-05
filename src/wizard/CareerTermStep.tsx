@@ -250,6 +250,14 @@ export function CareerTermStep({
     const psionicsAvailable =
       character.wizardState?.psionicsEnabled === true ||
       character.wizardState?.psionEligibility === true;
+    // Mongoose 2022 page 13: "If you leave a career, you cannot return to it in the
+    // next term." Lock out the most recently committed career on the very next term.
+    // Drifter is RAW-exempt (always open), so we don't apply the lock to it. Drafts
+    // and forced routings (Prisoner from event 11) bypass pick_career entirely so
+    // they're exempt by construction.
+    const justLeftCareerId = character.careerHistory.at(-1)?.career;
+    const isLockedJustLeft = (id: CareerId) =>
+      id !== 'drifter' && !!justLeftCareerId && id === justLeftCareerId;
     const visibleCareers = Object.values(CAREERS).filter((c) => {
       if (c.id === 'psion') return psionicsAvailable;
       return true;
@@ -264,10 +272,17 @@ export function CareerTermStep({
             const dms = qualificationDMs(character, c.id);
             const total = dms.reduce((acc, d) => acc + d.value, 0);
             const isFocused = focusedCareer === c.id;
+            const justLeft = isLockedJustLeft(c.id);
+            const disabled = c.flags?.enforcedEntry || justLeft;
+            const disabledReason = c.flags?.enforcedEntry
+              ? 'Cannot enter voluntarily'
+              : justLeft
+                ? `Just left ${c.name} — cannot return next term (Mongoose 2022 p13)`
+                : undefined;
             return (
               <li key={c.id}>
                 <button
-                  disabled={c.flags?.enforcedEntry}
+                  disabled={disabled}
                   onClick={() => {
                     setFocusedCareer(c.id);
                     if (!careerDetailsOpen) setCareerDetailsOpen(true);
@@ -277,20 +292,27 @@ export function CareerTermStep({
                       ? 'border-indigo-500 bg-indigo-50 ring-2 ring-indigo-300 ring-offset-1'
                       : 'border-gray-300 hover:bg-gray-50'
                   } disabled:opacity-50 disabled:cursor-not-allowed`}
+                  title={disabledReason}
                 >
                   <div className="font-medium">{c.name}</div>
                   <div className="text-xs text-gray-600">
-                    {c.flags?.enforcedEntry
-                      ? 'Cannot enter voluntarily'
-                      : c.qualification.special === 'automatic'
+                    {disabledReason ??
+                      (c.qualification.special === 'automatic'
                         ? 'Automatic qualification'
-                        : `Qualify: ${c.qualification.check.char} ${c.qualification.check.target}+ (DM ${total >= 0 ? '+' : ''}${total})`}
+                        : `Qualify: ${c.qualification.check.char} ${c.qualification.check.target}+ (DM ${total >= 0 ? '+' : ''}${total})`)}
                   </div>
                 </button>
               </li>
             );
           })}
         </ul>
+        {justLeftCareerId ? (
+          <p className="text-xs text-gray-500 italic">
+            Just left {CAREERS[justLeftCareerId].name} — per Mongoose 2022 you can't return to a
+            career on the term immediately after leaving. The Drifter career (and the draft) are
+            always available regardless.
+          </p>
+        ) : null}
         {!psionicsAvailable ? (
           <p className="text-xs text-gray-500 italic">
             Psion career hidden — enable psionics in Basics, or trigger eligibility through a pre-career or unusual life event.
@@ -310,9 +332,12 @@ export function CareerTermStep({
               <>
                 <CareerInfoCard career={focused} />
                 <button
-                  disabled={!!focused.flags?.enforcedEntry}
+                  disabled={!!focused.flags?.enforcedEntry || isLockedJustLeft(focused.id)}
                   onClick={() => setPhase({ kind: 'pick_assignment', careerId: focused.id })}
                   className="px-4 py-2 rounded bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title={isLockedJustLeft(focused.id)
+                    ? `Cannot return to ${focused.name} the term right after leaving (Mongoose 2022 p13).`
+                    : undefined}
                 >
                   Continue → {focused.name} assignments
                 </button>
