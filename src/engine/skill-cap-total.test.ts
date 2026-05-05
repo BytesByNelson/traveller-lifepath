@@ -33,23 +33,24 @@ describe('Total skill cap (3 × INT + EDU)', () => {
   it('rejects when granting would exceed the cap', () => {
     // INT 4 + EDU 4 → cap 24. Seed with 24 levels' worth of skills.
     // 24 skills at level 1 → 24 total. Granting another would push to 25 > 24.
+    // Use Jack-of-all-Trades (no specs) and not in the seed list so we're actually adding.
     let state = blankEngineState(seed(4, 4, fillSkills(24, 1)));
-    state = enqueue(state, [{ type: 'gain_skill', skill: { name: 'Tactics' }, level: 1 }]);
+    state = enqueue(state, [{ type: 'gain_skill', skill: { name: 'Jack-of-all-Trades' }, level: 1 }]);
     state = drain(state, scriptedRng([]));
     expect(state.prompt?.kind).toBe('note');
     if (state.prompt?.kind !== 'note') throw new Error('expected note');
     expect(state.prompt.text).toMatch(/Skill cap reached/);
-    expect(state.character.backgroundSkills.find((s) => s.name === 'Tactics')).toBeUndefined();
+    expect(state.character.backgroundSkills.find((s) => s.name === 'Jack-of-all-Trades')).toBeUndefined();
   });
 
   it('allows granting up to the cap exactly', () => {
     // INT 4 + EDU 4 → cap 24. Seed at 23. Granting +1 hits 24 exactly.
     const skills = fillSkills(23, 1);
     let state = blankEngineState(seed(4, 4, skills));
-    state = enqueue(state, [{ type: 'gain_skill', skill: { name: 'Tactics' }, level: 1 }]);
+    state = enqueue(state, [{ type: 'gain_skill', skill: { name: 'Jack-of-all-Trades' }, level: 1 }]);
     state = drain(state, scriptedRng([]));
     expect(state.prompt).toBeUndefined();
-    expect(state.character.backgroundSkills.find((s) => s.name === 'Tactics')?.level).toBe(1);
+    expect(state.character.backgroundSkills.find((s) => s.name === 'Jack-of-all-Trades')?.level).toBe(1);
   });
 
   it('does not block raising an already-existing skill while under the cap', () => {

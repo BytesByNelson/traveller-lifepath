@@ -555,12 +555,15 @@ export const resolveWager = (
 const apply = (state: EngineState, e: Effect, rng: Rng): EngineState => {
   switch (e.type) {
     case 'gain_skill': {
-      // For specRequired parent skills (Profession, Science), gain at level 1+ has no
-      // meaning without a specialization — prompt the player to pick one. Other parent
-      // skills (Gun Combat, Athletics, Tactics, Melee) grant the parent at the resolved
-      // level, which is meaningful per the rulebook.
+      // Per Mongoose 2022 p60, when a skill has specializations the parent only exists
+      // at level 0 (all specs at 0 simultaneously). Level 1+ ALWAYS requires picking a
+      // specific spec — there's no "Pilot 1" without a chosen specialty. So if the data
+      // grants a parent skill (no spec) and the resulting level would be ≥ 1, prompt
+      // the player to pick a spec instead of bumping the parent. Background skills and
+      // basic training write to backgroundSkills directly (bypassing this path) for the
+      // intentional level-0 parent grant.
       const def = SKILLS[e.skill.name];
-      if (def?.specRequired && def.specs.length > 0 && !e.skill.spec) {
+      if (def && def.specs.length > 0 && !e.skill.spec) {
         return {
           ...state,
           prompt: {

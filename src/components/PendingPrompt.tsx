@@ -243,15 +243,22 @@ function PickSkillPrompt({ state, onUpdate }: Props) {
 
       {showSpecPicker && skillDef ? (
         <div className="mt-2">
-          <p className="text-xs text-gray-600 mb-1">Pick specialization (or leave as parent skill):</p>
+          <p className="text-xs text-gray-600 mb-1">
+            {p.level === 0
+              ? 'Pick specialization (or leave as parent skill at level 0):'
+              : 'Pick specialization — required at level 1+ per Mongoose 2022.'}
+          </p>
           <div className="flex flex-wrap gap-1">
-            <button
-              type="button"
-              className="text-xs px-2 py-0.5 rounded border border-gray-300 hover:bg-gray-50"
-              onClick={() => setPicked({ ...picked, spec: undefined })}
-            >
-              {picked.name} (no spec)
-            </button>
+            {/* Parent-level option only valid when explicitly granting at level 0. */}
+            {p.level === 0 ? (
+              <button
+                type="button"
+                className="text-xs px-2 py-0.5 rounded border border-gray-300 hover:bg-gray-50"
+                onClick={() => setPicked({ ...picked, spec: undefined })}
+              >
+                {picked.name} (no spec)
+              </button>
+            ) : null}
             {skillDef.specs.map((sp) => (
               <button
                 key={sp}
@@ -266,8 +273,9 @@ function PickSkillPrompt({ state, onUpdate }: Props) {
         </div>
       ) : null}
 
+      {/* Confirm requires a spec selected when the prompt's target level requires one. */}
       <button
-        disabled={!picked}
+        disabled={!picked || (showSpecPicker && p.level !== 0 && !picked.spec)}
         onClick={() => picked && onUpdate(resolvePickSkill(state, picked as SkillRef))}
         className="mt-3 px-3 py-1.5 rounded bg-indigo-600 text-white text-sm hover:bg-indigo-700 disabled:opacity-50"
       >

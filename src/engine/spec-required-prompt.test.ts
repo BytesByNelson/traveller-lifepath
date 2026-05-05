@@ -39,13 +39,33 @@ describe('gain_skill — specRequired prompt', () => {
     expect(state.character.backgroundSkills.find((s) => s.name === 'Profession' && s.spec === 'belter')?.level).toBe(1);
   });
 
-  it('does NOT prompt for Tactics (parent-meaningful skill, not specRequired)', () => {
+  it('prompts for Tactics specialization at level 1+ (per Mongoose 2022 p60: every spec\'d skill needs a spec at 1+)', () => {
     const c = newCharacter('id', 'X', 'human');
     let state: EngineState = blankEngineState(c);
     state = enqueue(state, [{ type: 'gain_skill', skill: { name: 'Tactics' }, level: 1 }]);
     state = drain(state);
+    expect(state.prompt?.kind).toBe('pick_skill');
+    if (state.prompt?.kind !== 'pick_skill') throw new Error('expected pick_skill');
+    expect(state.prompt.from?.every((r) => r.name === 'Tactics' && !!r.spec)).toBe(true);
+  });
+
+  it('also prompts for Pilot when no spec is given (covers the Reddit "Pilot 1 + Pilot (spacecraft) 1" report)', () => {
+    const c = newCharacter('id', 'X', 'human');
+    let state: EngineState = blankEngineState(c);
+    state = enqueue(state, [{ type: 'gain_skill', skill: { name: 'Pilot' } }]);
+    state = drain(state);
+    expect(state.prompt?.kind).toBe('pick_skill');
+    if (state.prompt?.kind !== 'pick_skill') throw new Error('expected pick_skill');
+    expect(state.prompt.from?.every((r) => r.name === 'Pilot' && !!r.spec)).toBe(true);
+  });
+
+  it('grants skills without specializations directly (no prompt)', () => {
+    const c = newCharacter('id', 'X', 'human');
+    let state: EngineState = blankEngineState(c);
+    state = enqueue(state, [{ type: 'gain_skill', skill: { name: 'Stealth' }, level: 1 }]);
+    state = drain(state);
     expect(state.prompt).toBeUndefined();
-    expect(state.character.backgroundSkills.find((s) => s.name === 'Tactics')?.level).toBe(1);
+    expect(state.character.backgroundSkills.find((s) => s.name === 'Stealth')?.level).toBe(1);
   });
 
   it('completes the bump when the player picks a specialization', () => {
