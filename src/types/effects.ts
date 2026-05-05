@@ -230,6 +230,16 @@ export type Effect =
       onFailure: Effect[];
       onNaturalTwo?: Effect[];
       description?: string;
+      /**
+       * What kind of career-check this is, for routing pending DMs. The engine
+       * reads this to decide which pendingDM bucket (nextQualification /
+       * nextSurvival / nextAdvancement) the check should consume, and to clear
+       * that bucket on resolution. Untagged checks — sub-rolls inside events,
+       * follow-up checks on picked skills, etc. — consume nothing, which is
+       * what we want: a SOC check inside a Marine event shouldn't eat the
+       * +DM the player banked for next survival.
+       */
+      category?: 'qualification' | 'commission' | 'survival' | 'advancement';
     }
   /**
    * Player wagers any number of a specific resource (typically benefit rolls)

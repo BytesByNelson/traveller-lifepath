@@ -266,11 +266,22 @@ export const resolveCheck = (
   if (natural === 2 && effect.onNaturalTwo) branch.push(...effect.onNaturalTwo);
 
   // Consume any pending DM that just applied to this check, so it doesn't carry forward.
-  const ctx = state.context.at(-1) ?? '';
+  // Untagged checks (event-internal sub-rolls etc.) didn't consume a DM, so nothing to clear.
   const pendingAfter = { ...state.pendingDMs };
-  if (/qualification/i.test(ctx) || /commission/i.test(ctx)) delete pendingAfter.nextQualification;
-  else if (/survival/i.test(ctx)) delete pendingAfter.nextSurvival;
-  else if (/advancement/i.test(ctx)) delete pendingAfter.nextAdvancement;
+  switch (effect.category) {
+    case 'qualification':
+    case 'commission':
+      delete pendingAfter.nextQualification;
+      break;
+    case 'survival':
+      delete pendingAfter.nextSurvival;
+      break;
+    case 'advancement':
+      delete pendingAfter.nextAdvancement;
+      break;
+    case undefined:
+      break;
+  }
 
   const after: EngineState = {
     ...state,
@@ -844,7 +855,7 @@ const apply = (state: EngineState, e: Effect, rng: Rng): EngineState => {
     case 'choice':
       return { ...state, prompt: { kind: 'choice', effect: e, title: e.prompt } };
     case 'check': {
-      const dms = computeCheckDMs(state, e.roll);
+      const dms = computeCheckDMs(state, e);
       return { ...state, prompt: { kind: 'check', effect: e, dms, title: state.context.at(-1) ?? checkTitle(e.roll) } };
     }
     case 'wager_benefit_rolls':
@@ -919,30 +930,47 @@ const resolveCount = (count: { fixed: number } | { dice: '1D' | '2D' | 'D3' } | 
   return rollSpec(count.dice, rng);
 };
 
-const computeCheckDMs = (state: EngineState, roll: RollCheck): { source: string; value: number }[] => {
-  // During creation, no skill DMs are added except where rules explicitly do (they don't on character-creation checks).
-  // We surface the relevant char DM plus any queued situational DM that matches this check.
+const computeCheckDMs = (
+  state: EngineState,
+  effect: Extract<Effect, { type: 'check' }>,
+): { source: string; value: number }[] => {
+  // During creation, no skill DMs are added except where rules explicitly do (they don't on
+  // character-creation checks). We surface the relevant char DM plus any queued situational
+  // DM that matches this check's category. Untagged checks (event-internal sub-rolls,
+  // followUpCheck on picked skills) consume nothing — they're not the check the player banked
+  // their +DM for.
   const dms: { source: string; value: number }[] = [];
+  const roll = effect.roll;
   if (roll.kind === 'char') {
     const dm = charDM(state.character, roll.char);
     if (dm !== 0) dms.push({ source: `${roll.char} DM`, value: dm });
   }
-  const ctx = state.context.at(-1) ?? '';
-  const pending = state.pendingDMs;
-  // Commission and qualification both share the nextQualification bucket — they're
-  // both "are you getting accepted" rolls per the rulebook's idiom.
-  if (
-    (/qualification/i.test(ctx) || /commission/i.test(ctx)) &&
-    typeof pending.nextQualification === 'number' &&
-    pending.nextQualification !== 0
-  ) {
-    dms.push({ source: 'Carried DM', value: pending.nextQualification });
-  } else if (/survival/i.test(ctx) && typeof pending.nextSurvival === 'number' && pending.nextSurvival !== 0) {
-    dms.push({ source: 'Carried DM', value: pending.nextSurvival });
-  } else if (/advancement/i.test(ctx) && typeof pending.nextAdvancement === 'number' && pending.nextAdvancement !== 0) {
-    dms.push({ source: 'Carried DM', value: pending.nextAdvancement });
+  const carried = pendingDMForCategory(state.pendingDMs, effect.category);
+  if (typeof carried === 'number' && carried !== 0) {
+    dms.push({ source: 'Carried DM', value: carried });
   }
   return dms;
+};
+
+/** Map a check category to its pendingDM bucket. Commission shares the qualification
+ *  bucket because the rulebook treats commission DMs the same way (per-term-after-first
+ *  is added via next_qualification_dm in startCommission, and pre-career bonuses use
+ *  the same effect type). */
+const pendingDMForCategory = (
+  pending: EngineState['pendingDMs'],
+  category: 'qualification' | 'commission' | 'survival' | 'advancement' | undefined,
+): number | undefined => {
+  switch (category) {
+    case 'qualification':
+    case 'commission':
+      return pending.nextQualification;
+    case 'survival':
+      return pending.nextSurvival;
+    case 'advancement':
+      return pending.nextAdvancement;
+    case undefined:
+      return undefined;
+  }
 };
 
 const checkTitle = (roll: RollCheck): string => {

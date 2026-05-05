@@ -200,7 +200,7 @@ export const startQualification = (
   state = pushContext(state, `${career.name} qualification`);
   state = enqueue(state, [
     ...dmsOnQual,
-    { type: 'check', roll: career.qualification.check, onSuccess: [], onFailure: [] },
+    { type: 'check', roll: career.qualification.check, onSuccess: [], onFailure: [], category: 'qualification' },
   ]);
   state = drain(state, rng);
   return { state, auto: false };
@@ -286,6 +286,7 @@ export const startSurvival = (
     onFailure: [
       { type: 'roll_on_table', table: { kind: 'career_mishaps', career: career.id } },
     ],
+    category: 'survival',
   });
   state = enqueue(state, effects);
   state = drain(state, rng);
@@ -322,6 +323,7 @@ export const startAdvancement = (
     roll: assignment.advancement,
     onSuccess: [],
     onFailure: [],
+    category: 'advancement',
   });
   state = enqueue(state, effects);
   state = drain(state, rng);
@@ -514,7 +516,13 @@ export const startCommission = (
       effects.push({ type: 'next_qualification_dm', dm: preBonus.dm });
     }
   }
-  effects.push({ type: 'check', roll: career.commission.check, onSuccess: [], onFailure: [] });
+  effects.push({
+    type: 'check',
+    roll: career.commission.check,
+    onSuccess: [],
+    onFailure: [],
+    category: 'commission',
+  });
   let state = blankEngineState(c);
   state = pushContext(state, `${career.name} commission`);
   state = enqueue(state, effects);
