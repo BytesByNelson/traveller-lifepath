@@ -1,17 +1,53 @@
-import { Suspense, lazy } from 'react';
-import { Outlet, createHashRouter } from 'react-router-dom';
+import { Suspense, lazy, type ComponentType } from 'react';
+import { Outlet, createHashRouter, useRouteError } from 'react-router-dom';
 import { AnalyticsRouteTracker } from './components/AnalyticsRouteTracker';
 
-// Lazy-load each page so the initial bundle stays small. The catalogue data,
-// equipment blocks, and full sheet only download once the user navigates to
-// /sheet/:id. The wizard chunks similarly when they hit /create/:id.
-const CharacterListPage = lazy(() =>
+/**
+ * Wrap a lazy() loader so a stale-chunk failure (most common cause: a new build
+ * was deployed mid-session, and the HTML in this tab references chunk hashes
+ * that no longer exist on the server) triggers a single full-page reload. The
+ * reload pulls fresh HTML pointing to current chunk hashes; localStorage state
+ * is preserved across the reload so the user lands on the page they intended.
+ *
+ * Guarded by a 30-second sessionStorage key so a genuinely-broken chunk doesn't
+ * spin in an infinite reload loop.
+ */
+const RELOAD_GUARD_KEY = 'traveller:chunk_reload_at';
+
+const isChunkLoadError = (err: unknown): boolean => {
+  if (!(err instanceof Error)) return false;
+  const m = err.message ?? '';
+  return (
+    /loading dynamically imported module/i.test(m) ||
+    /failed to fetch dynamically imported module/i.test(m) ||
+    /loading chunk \d+ failed/i.test(m) ||
+    /importing a module script failed/i.test(m)
+  );
+};
+
+const reloadOnce = (): void => {
+  if (typeof window === 'undefined') return;
+  const last = Number(sessionStorage.getItem(RELOAD_GUARD_KEY) ?? 0);
+  if (Date.now() - last < 30_000) return;
+  sessionStorage.setItem(RELOAD_GUARD_KEY, String(Date.now()));
+  window.location.reload();
+};
+
+const lazyChunk = (loader: () => Promise<{ default: ComponentType<unknown> }>) =>
+  lazy(() =>
+    loader().catch((err: unknown) => {
+      if (isChunkLoadError(err)) reloadOnce();
+      throw err;
+    }),
+  );
+
+const CharacterListPage = lazyChunk(() =>
   import('./pages/CharacterListPage').then((m) => ({ default: m.CharacterListPage })),
 );
-const WizardPage = lazy(() =>
+const WizardPage = lazyChunk(() =>
   import('./pages/WizardPage').then((m) => ({ default: m.WizardPage })),
 );
-const SheetPage = lazy(() =>
+const SheetPage = lazyChunk(() =>
   import('./pages/SheetPage').then((m) => ({ default: m.SheetPage })),
 );
 
@@ -20,6 +56,41 @@ const Loading = () => (
 );
 
 const wrap = (el: React.ReactNode) => <Suspense fallback={<Loading />}>{el}</Suspense>;
+
+/**
+ * Fallback rendered when something throws inside a route. The most common case
+ * is a chunk-load failure that didn't (or couldn't) auto-reload — we surface a
+ * "reload to recover" button so the user has an unambiguous escape hatch and
+ * the message reassures them their character is still saved in localStorage.
+ */
+const RouteErrorBoundary = () => {
+  const err = useRouteError();
+  const isChunk = isChunkLoadError(err);
+  return (
+    <main className="max-w-xl mx-auto p-6 space-y-3">
+      <h1 className="text-xl font-semibold text-rose-700">
+        {isChunk ? 'Site updated — please reload' : 'Something went wrong'}
+      </h1>
+      <p className="text-sm text-gray-700">
+        {isChunk
+          ? 'A newer version of the app was deployed while this tab was open, so an asset this page needs is no longer on the server. Your character is still saved in your browser — reload to pick up the new build and continue where you left off.'
+          : 'An unexpected error occurred. Your character data is saved in your browser; reload the page to continue.'}
+      </p>
+      <button
+        onClick={() => window.location.reload()}
+        className="px-4 py-2 rounded bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700"
+      >
+        Reload
+      </button>
+      {err instanceof Error ? (
+        <details className="mt-4 text-xs text-gray-500">
+          <summary className="cursor-pointer">Technical detail</summary>
+          <pre className="mt-2 whitespace-pre-wrap break-all">{err.message}</pre>
+        </details>
+      ) : null}
+    </main>
+  );
+};
 
 /**
  * Layout route — wraps every page so the analytics tracker sits inside the router
@@ -37,6 +108,7 @@ const RootLayout = () => (
 export const router = createHashRouter([
   {
     element: <RootLayout />,
+    errorElement: <RouteErrorBoundary />,
     children: [
       { path: '/', element: wrap(<CharacterListPage />) },
       { path: '/create/:id', element: wrap(<WizardPage />) },
