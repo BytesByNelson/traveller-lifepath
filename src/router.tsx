@@ -1,5 +1,6 @@
 import { Suspense, lazy } from 'react';
-import { createHashRouter } from 'react-router-dom';
+import { Outlet, createHashRouter } from 'react-router-dom';
+import { AnalyticsRouteTracker } from './components/AnalyticsRouteTracker';
 
 // Lazy-load each page so the initial bundle stays small. The catalogue data,
 // equipment blocks, and full sheet only download once the user navigates to
@@ -20,8 +21,26 @@ const Loading = () => (
 
 const wrap = (el: React.ReactNode) => <Suspense fallback={<Loading />}>{el}</Suspense>;
 
+/**
+ * Layout route — wraps every page so the analytics tracker sits inside the router
+ * (it needs useLocation) and fires a pageview on every route change. HashRouter
+ * doesn't fire native page loads, so without this we'd only ever see the initial
+ * landing route in GoatCounter.
+ */
+const RootLayout = () => (
+  <>
+    <AnalyticsRouteTracker />
+    <Outlet />
+  </>
+);
+
 export const router = createHashRouter([
-  { path: '/', element: wrap(<CharacterListPage />) },
-  { path: '/create/:id', element: wrap(<WizardPage />) },
-  { path: '/sheet/:id', element: wrap(<SheetPage />) },
+  {
+    element: <RootLayout />,
+    children: [
+      { path: '/', element: wrap(<CharacterListPage />) },
+      { path: '/create/:id', element: wrap(<WizardPage />) },
+      { path: '/sheet/:id', element: wrap(<SheetPage />) },
+    ],
+  },
 ]);
