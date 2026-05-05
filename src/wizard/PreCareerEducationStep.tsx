@@ -14,11 +14,20 @@ import { debug } from '../debug';
 
 type Track = 'university' | 'army' | 'marine' | 'navy';
 
+/** University picks made on the skills page, deferred until entry succeeds. */
+type PendingUniversitySkills = { level0: SkillName; level1: SkillName };
+
 type Phase =
   | { kind: 'choose' }
   | { kind: 'university_skills'; level0?: SkillName; level1?: SkillName }
-  | { kind: 'entry_check'; track: Track; engine: EngineState }
-  | { kind: 'entry_outcome'; track: Track; success: boolean; rollEntry: RollLogEntry }
+  | { kind: 'entry_check'; track: Track; engine: EngineState; pendingUniversitySkills?: PendingUniversitySkills }
+  | {
+      kind: 'entry_outcome';
+      track: Track;
+      success: boolean;
+      rollEntry: RollLogEntry;
+      pendingUniversitySkills?: PendingUniversitySkills;
+    }
   | { kind: 'event'; track: Track; engine: EngineState }
   | { kind: 'event_outcome'; track: Track; eventRoll: number }
   | { kind: 'graduation_check'; track: Track; engine: EngineState }
@@ -84,9 +93,7 @@ export function PreCareerEducationStep({
             disabled={armyBlocked}
             disabledReason={armyBlocked ? `Requires END ${armyReq}+` : undefined}
             onClick={() => {
-              const marked = markPreCareerEducationTaken(character);
-              onChange(marked);
-              const state = startMilitaryAcademyEntry(marked, 'army', termIndex, Math.random);
+              const state = startMilitaryAcademyEntry(character, 'army', termIndex, Math.random);
               setPhase({ kind: 'entry_check', track: 'army', engine: state });
             }}
           />
@@ -96,9 +103,7 @@ export function PreCareerEducationStep({
             disabled={marineBlocked}
             disabledReason={marineBlocked ? `Requires END ${marineReq}+` : undefined}
             onClick={() => {
-              const marked = markPreCareerEducationTaken(character);
-              onChange(marked);
-              const state = startMilitaryAcademyEntry(marked, 'marine', termIndex, Math.random);
+              const state = startMilitaryAcademyEntry(character, 'marine', termIndex, Math.random);
               setPhase({ kind: 'entry_check', track: 'marine', engine: state });
             }}
           />
@@ -108,9 +113,7 @@ export function PreCareerEducationStep({
             disabled={navyBlocked}
             disabledReason={navyBlocked ? `Requires INT ${navyReq}+` : undefined}
             onClick={() => {
-              const marked = markPreCareerEducationTaken(character);
-              onChange(marked);
-              const state = startMilitaryAcademyEntry(marked, 'navy', termIndex, Math.random);
+              const state = startMilitaryAcademyEntry(character, 'navy', termIndex, Math.random);
               setPhase({ kind: 'entry_check', track: 'navy', engine: state });
             }}
           />
@@ -160,11 +163,17 @@ export function PreCareerEducationStep({
         <button
           disabled={!phase.level0 || !phase.level1 || phase.level0 === phase.level1}
           onClick={() => {
-            const withSkills = grantSkillsForUniversity(character, phase.level0!, phase.level1!);
-            const marked = markPreCareerEducationTaken(withSkills);
-            onChange(marked);
-            const state = startUniversityEntry(marked, termIndex, Math.random);
-            setPhase({ kind: 'entry_check', track: 'university', engine: state });
+            // Skills + the "education taken" flag are NOT applied yet — only on entry success.
+            // If the player fails the entry roll, no skills should land on the sheet and
+            // no academy term should count toward their age. Carry the picks through the
+            // entry phase via phase state.
+            const state = startUniversityEntry(character, termIndex, Math.random);
+            setPhase({
+              kind: 'entry_check',
+              track: 'university',
+              engine: state,
+              pendingUniversitySkills: { level0: phase.level0!, level1: phase.level1! },
+            });
           }}
           className="px-4 py-2 rounded bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 disabled:opacity-50"
         >
@@ -190,6 +199,9 @@ export function PreCareerEducationStep({
                   track: phase.track,
                   success: !!last.success,
                   rollEntry: last,
+                  ...(phase.pendingUniversitySkills
+                    ? { pendingUniversitySkills: phase.pendingUniversitySkills }
+                    : {}),
                 });
               }
             } else {
@@ -211,10 +223,30 @@ export function PreCareerEducationStep({
             <div className="rounded border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
               <p className="font-medium">You're in!</p>
               <p className="mt-1">{entrySuccessSummary(phase.track)}</p>
+              {phase.pendingUniversitySkills ? (
+                <p className="mt-1">
+                  Granted: <strong>{phase.pendingUniversitySkills.level0}</strong> at level 0,{' '}
+                  <strong>{phase.pendingUniversitySkills.level1}</strong> at level 1.
+                </p>
+              ) : null}
             </div>
             <button
               onClick={() => {
-                const event = startPreCareerEvent(character, Math.random);
+                // Now that entry succeeded: apply the deferred university skill grant
+                // and mark the academy term as taken (only successful enrollment counts
+                // toward age + sheet skills per Mongoose 2022 p16).
+                let next = character;
+                if (phase.pendingUniversitySkills) {
+                  next = grantSkillsForUniversity(
+                    next,
+                    phase.pendingUniversitySkills.level0,
+                    phase.pendingUniversitySkills.level1,
+                  );
+                }
+                next = markPreCareerEducationTaken(next);
+                onChange(next);
+
+                const event = startPreCareerEvent(next, Math.random);
                 onChange(event.character);
                 // If the event drained immediately (no follow-up prompts), skip the
                 // intermediate "blank Continue" page and go straight to the result.
