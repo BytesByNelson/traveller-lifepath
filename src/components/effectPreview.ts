@@ -78,6 +78,10 @@ export function summarizeEffect(effect: Effect): string {
       return 'Become eligible to test PSI';
     case 'allow_career_without_qualification':
       return `${effect.career} without qualification next term`;
+    case 'force_fail_pre_career_graduation':
+      return 'Fail to graduate this term';
+    case 'prisoner_on_natural_two':
+      return 'Roll 2D — on natural 2, Prisoner career next term';
     case 'check':
       return effect.description ?? `${rollCheckLabel(effect.roll)} ${effect.roll.target}+ check`;
     case 'wager_benefit_rolls':

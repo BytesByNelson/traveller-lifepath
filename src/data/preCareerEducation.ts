@@ -111,7 +111,7 @@ export const PRE_CAREER_EVENTS: PreCareerEventRow[] = [
   {
     roll: 3,
     text: 'Deep tragedy. You crash and fail to graduate.',
-    effects: [{ type: 'note', text: 'Fail to graduate this term.' }],
+    effects: [{ type: 'force_fail_pre_career_graduation' }],
   },
   {
     roll: 4,

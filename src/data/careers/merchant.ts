@@ -253,7 +253,7 @@ export const merchant: Career = {
       text: 'Legal trouble. +1 Advocate, Admin, Diplomat, or Investigate. Roll 2D = 2 → Prisoner next term.',
       effects: [
         { type: 'gain_skill_choice', level: 1, from: [{ name: 'Advocate' }, { name: 'Admin' }, { name: 'Diplomat' }, { name: 'Investigate' }] },
-        { type: 'note', text: 'Roll 2D — on natural 2, take Prisoner career next term.' },
+        { type: 'prisoner_on_natural_two' },
       ],
     },
     {

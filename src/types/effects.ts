@@ -201,6 +201,19 @@ export type Effect =
   | { type: 'note'; text: string }
   | { type: 'gain_psion_eligibility' }
   | { type: 'allow_career_without_qualification'; career: string; nextTerm: true }
+  /**
+   * Forces the upcoming pre-career graduation roll to be treated as a failure
+   * (without expelling). Used by Pre-career event 3 ("Deep tragedy") which the
+   * rulebook says causes you to crash out of the academy / drop university.
+   */
+  | { type: 'force_fail_pre_career_graduation' }
+  /**
+   * Engine-internal 2D roll: on a natural 2, the Traveller is forced into the
+   * Prisoner career next term. Used by Rogue / Drifter / Merchant mishaps that
+   * say "Roll 2D — on a 2, take Prisoner next term." The roll is logged so
+   * the player can see it happened, but no prompt is raised.
+   */
+  | { type: 'prisoner_on_natural_two' }
 
   // ─── control flow (engine pauses) ────────────────────────────────
   | { type: 'choice'; prompt: string; options: { label: string; effects: Effect[] }[] }

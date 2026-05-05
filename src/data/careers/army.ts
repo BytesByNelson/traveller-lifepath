@@ -183,11 +183,17 @@ export const army: Career = {
           options: [
             {
               label: 'Join — gain commander as Ally before the investigation gets you discharged.',
-              effects: [{ type: 'gain_connection', connection: 'ally' }, { type: 'eject_career' }],
+              // Standard mishap penalty: lose this term's benefit roll.
+              effects: [
+                { type: 'gain_connection', connection: 'ally' },
+                { type: 'lose_benefit_rolls', count: 1 },
+                { type: 'eject_career' },
+              ],
             },
             {
               label: 'Cooperate — discharged but keep this term\'s Benefit roll.',
-              effects: [{ type: 'note', text: 'Keep this term\'s Benefit roll.' }, { type: 'eject_career' }],
+              // The "keep benefit roll" phrasing means no benefit penalty applied.
+              effects: [{ type: 'eject_career' }],
             },
           ],
         },

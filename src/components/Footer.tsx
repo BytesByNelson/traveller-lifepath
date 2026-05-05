@@ -41,6 +41,18 @@ export function Footer() {
           </a>
           .
         </p>
+        <p className="pt-2 mt-2 border-t border-gray-200 text-gray-700">
+          ☕ Enjoying the tool? It's a labour of love and entirely free — but{' '}
+          <a
+            href="https://buymeacoffee.com/bytesbynelson"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-amber-700 underline hover:text-amber-900"
+          >
+            buying me a coffee
+          </a>{' '}
+          helps fund the time I spend keeping it accurate and adding new features. Every bit is appreciated.
+        </p>
       </div>
     </footer>
   );

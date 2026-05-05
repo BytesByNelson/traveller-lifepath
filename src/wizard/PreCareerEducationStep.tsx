@@ -238,9 +238,18 @@ export function PreCareerEducationStep({
   }
 
   if (phase.kind === 'event') {
+    const eventRoll = lastEventRoll(character);
+    const eventRow =
+      eventRoll !== undefined ? PRE_CAREER_EVENTS.find((r) => r.roll === eventRoll) : undefined;
     return (
       <section className="space-y-4">
         <h2 className="text-xl font-semibold">Pre-career event</h2>
+        {eventRow ? (
+          <div className="rounded border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm space-y-1">
+            <div className="text-xs uppercase tracking-wide text-indigo-700">Event roll: {eventRoll}</div>
+            <p className="text-gray-800">{eventRow.text}</p>
+          </div>
+        ) : null}
         <PendingPrompt
           state={phase.engine}
           onUpdate={(s) => {
@@ -248,8 +257,8 @@ export function PreCareerEducationStep({
             if (!s.prompt) {
               // Final prompt resolved — the engine has drained. Skip the blank
               // intermediate page and go straight to the event result.
-              const eventRoll = lastEventRoll(s.character) ?? 0;
-              setPhase({ kind: 'event_outcome', track: phase.track, eventRoll });
+              const finishedRoll = lastEventRoll(s.character) ?? 0;
+              setPhase({ kind: 'event_outcome', track: phase.track, eventRoll: finishedRoll });
             } else {
               setPhase({ ...phase, engine: s });
             }
@@ -297,6 +306,40 @@ export function PreCareerEducationStep({
         </div>
         <button
           onClick={() => {
+            // Pre-career event 3 ("Deep tragedy") sets a flag that forces graduation to fail.
+            if (character.wizardState?.forceFailPreCareerGraduation) {
+              const cleared: Character = {
+                ...character,
+                wizardState: { ...character.wizardState, forceFailPreCareerGraduation: false },
+              };
+              onChange(cleared);
+              const honourThreshold =
+                phase.track === 'university'
+                  ? UNIVERSITY.graduationHonoursAtLeast
+                  : MILITARY_ACADEMY.graduationHonoursAtLeast;
+              setPhase({
+                kind: 'graduation_outcome',
+                track: phase.track,
+                success: false,
+                honours: false,
+                rollEntry: {
+                  id: crypto.randomUUID(),
+                  ts: Date.now(),
+                  context: phase.track === 'university' ? 'University graduation (forced fail — Deep tragedy)' : 'Military Academy graduation (forced fail — Deep tragedy)',
+                  target: phase.track === 'university'
+                    ? UNIVERSITY.graduation.check.target
+                    : MILITARY_ACADEMY.graduation.check.target,
+                  result: 0,
+                  natural: 0,
+                  success: false,
+                  source: 'manual',
+                },
+                // result 0 < failsafeAutoEntryFloor (3) ⇒ no auto-entry; ensures honourThreshold doesn't trip.
+                failsafeAuto: 0 >= MILITARY_ACADEMY.failsafeAutoEntryFloor && phase.track !== 'university',
+              });
+              void honourThreshold;
+              return;
+            }
             const grad =
               phase.track === 'university'
                 ? startUniversityGraduation(character, Math.random)

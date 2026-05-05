@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { CareerId, CareerTerm, Character } from '../types';
+import type { CareerId, CareerTerm, Character, SkillName } from '../types';
 import { CAREERS } from '../data';
 import {
   agingCrisisChars,
@@ -467,24 +467,74 @@ export function CareerTermStep({
 
   /* ─────── basic training ─────── */
   if (phase.kind === 'basic_training') {
+    const isFirstTermInCareer = termsInCareer(character, phase.ctx.careerId) === 0;
+    const trainingTable = career.flags?.basicTrainingFromAssignment
+      ? career.assignments.find((a) => a.id === phase.ctx.assignmentId)?.skillTable ?? []
+      : career.skillTables.find((t) => t.id === 'service_skills')?.rows ?? [];
+    const trainingSkillNames = Array.from(
+      new Set(
+        trainingTable
+          .map((r) => (r.effect.type === 'gain_skill' ? r.effect.skill.name : undefined))
+          .filter((n): n is SkillName => !!n),
+      ),
+    );
     return (
       <section className="space-y-4">
         <h2 className="text-xl font-semibold">{career.name} — basic training</h2>
-        <p className="text-sm text-gray-600">
-          {termsInCareer(character, phase.ctx.careerId) === 0
-            ? 'First term in this career: gain all service skills at level 0.'
-            : 'Subsequent term: pick one service skill at level 0 (this UI hands all six for now).'}
-        </p>
-        <button
-          onClick={() => {
-            const next = applyBasicTraining(character, phase.ctx.careerId, phase.ctx.assignmentId, termIndex);
-            onChange(next);
-            setPhase({ kind: 'pick_skill_table', ctx: phase.ctx, isExtra: false });
-          }}
-          className="px-4 py-2 rounded bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700"
-        >
-          Apply basic training → Skill table
-        </button>
+        {isFirstTermInCareer ? (
+          <>
+            <p className="text-sm text-gray-600">
+              First term in {career.name}: you gain all service skills at level 0 (basic training).
+            </p>
+            <div className="rounded border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-700">
+              <div className="text-[10px] uppercase tracking-wide text-gray-500 mb-1">Skills you'll learn</div>
+              <p>{trainingSkillNames.join(', ')}</p>
+            </div>
+            <button
+              onClick={() => {
+                const next = applyBasicTraining(character, phase.ctx.careerId, phase.ctx.assignmentId, termIndex);
+                onChange(next);
+                setPhase({ kind: 'pick_skill_table', ctx: phase.ctx, isExtra: false });
+              }}
+              className="px-4 py-2 rounded bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700"
+            >
+              Apply basic training → Skill table
+            </button>
+          </>
+        ) : (
+          <>
+            <p className="text-sm text-gray-600">
+              Subsequent term in {career.name}: pick one service skill to gain at level 0. (Already-known skills won't bump.)
+            </p>
+            <ul className="grid grid-cols-2 gap-2">
+              {trainingSkillNames.map((name) => (
+                <li key={name}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = applyBasicTraining(character, phase.ctx.careerId, phase.ctx.assignmentId, termIndex, name);
+                      onChange(next);
+                      setPhase({ kind: 'pick_skill_table', ctx: phase.ctx, isExtra: false });
+                    }}
+                    className="w-full px-3 py-2 rounded border border-gray-300 hover:border-indigo-400 hover:bg-indigo-50 text-sm text-left"
+                  >
+                    {name}
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <button
+              type="button"
+              onClick={() => {
+                // Skip — no service skill picked. (Lets veterans whose stats already cover everything move on.)
+                setPhase({ kind: 'pick_skill_table', ctx: phase.ctx, isExtra: false });
+              }}
+              className="text-xs text-gray-500 underline hover:text-gray-700"
+            >
+              Skip (gain nothing from basic training this term)
+            </button>
+          </>
+        )}
       </section>
     );
   }

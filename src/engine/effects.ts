@@ -789,6 +789,33 @@ const apply = (state: EngineState, e: Effect, rng: Rng): EngineState => {
           wizardState: { ...(state.character.wizardState ?? { step: 'career_term' }), psionEligibility: true },
         },
       };
+    case 'force_fail_pre_career_graduation':
+      return {
+        ...state,
+        character: {
+          ...state.character,
+          wizardState: {
+            ...(state.character.wizardState ?? { step: 'pre_career_education' }),
+            forceFailPreCareerGraduation: true,
+          },
+        },
+      };
+    case 'prisoner_on_natural_two': {
+      const { total } = roll2d(rng);
+      const log: RollLogEntry = {
+        id: crypto.randomUUID(),
+        ts: Date.now(),
+        context: `${state.context.at(-1) ?? 'Prisoner chance'} — Prisoner-on-2 roll → ${total}`,
+        natural: total,
+        result: total,
+        source: 'rng',
+      };
+      const next = { ...state, character: { ...state.character, rollLog: [...state.character.rollLog, log] } };
+      if (total === 2) {
+        return { ...next, flags: { ...next.flags, forcedNextCareer: 'prisoner' } };
+      }
+      return next;
+    }
     case 'allow_career_without_qualification':
       // Track via note for now; engine allows the wizard to bypass qualification next term if set.
       return { ...state, prompt: { kind: 'note', text: `Next term you may take ${e.career} without a qualification roll.` } };

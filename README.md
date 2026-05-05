@@ -87,6 +87,12 @@ Publishing or Far Future Enterprises. If a representative of either rights-holde
 has concerns about this project, please open an issue or contact the maintainer
 and concerns will be addressed promptly.
 
+## Support the project
+
+The tool is free and always will be. If it's saved you time at the table or just
+amused you, you can [buy me a coffee](https://buymeacoffee.com/bytesbynelson) ☕ —
+every bit helps fund the time spent keeping it accurate and adding new features.
+
 ## Code license
 
 Source code is released under the MIT License — see `LICENSE` if/when added. The

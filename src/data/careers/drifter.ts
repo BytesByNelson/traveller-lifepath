@@ -136,7 +136,7 @@ export const drifter: Career = {
       text: 'Betrayed by a friend. Convert a Contact/Ally to Rival/Enemy. 2D = 2 → Prisoner next term.',
       effects: [
         { type: 'convert_connection', from: ['contact', 'ally'], to: ['rival', 'enemy'], orGainNew: true },
-        { type: 'note', text: 'Roll 2D — on a 2, take Prisoner career next term.' },
+        { type: 'prisoner_on_natural_two' },
         { type: 'eject_career' },
       ],
     },

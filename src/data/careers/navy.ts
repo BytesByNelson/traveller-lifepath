@@ -139,8 +139,13 @@ export const navy: Career = {
         {
           type: 'check',
           roll: { kind: 'char', char: 'INT', target: 8 },
+          // Honourable discharge keeps the benefit roll — no mechanical penalty.
           onSuccess: [{ type: 'note', text: 'Honourably discharged; keep this term\'s Benefit roll.' }],
-          onFailure: [{ type: 'note', text: 'Court-martialled and discharged.' }],
+          // Court-martialled = lose this term's benefit roll.
+          onFailure: [
+            { type: 'note', text: 'Court-martialled and discharged.' },
+            { type: 'lose_benefit_rolls', count: 1 },
+          ],
         },
         { type: 'eject_career' },
       ],

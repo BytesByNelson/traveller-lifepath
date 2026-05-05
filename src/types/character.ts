@@ -120,6 +120,12 @@ export type WizardState = {
    */
   psionicsEnabled?: boolean;
   /**
+   * Set by pre-career event 3 ("Deep tragedy") via the force_fail_pre_career_graduation
+   * effect. When true, the wizard's graduation step skips the roll and treats it as a
+   * failure. Cleared after graduation resolves.
+   */
+  forceFailPreCareerGraduation?: boolean;
+  /**
    * Roll mode chosen on the Basics step. 'app' lets the wizard roll dice; 'manual' has
    * the player enter their own results. Persisted so subsequent rolls during the wizard
    * default to the same control. Undefined means "ask before showing controls."
