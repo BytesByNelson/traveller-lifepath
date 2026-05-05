@@ -3,6 +3,20 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!--
+      Tell browsers (and any honest intermediate cache) not to reuse this HTML without
+      revalidating with the server. Vite's hashed asset filenames are content-addressed
+      so the JS/CSS chunks can be cached forever, but the entry HTML MUST be fresh on
+      every load — otherwise a tab opened before a deploy keeps referencing chunk hashes
+      that GitHub Pages no longer serves, and lazy imports fail mid-session.
+
+      GitHub Pages doesn't expose HTTP cache-control headers we can customise from the
+      repo, so these meta equivalents plus the in-app stale-chunk auto-reload (see
+      router.tsx) are our defence in depth.
+    -->
+    <meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="pragma" content="no-cache" />
+    <meta http-equiv="expires" content="0" />
     <title>Traveller Lifepath</title>
     <!-- GoatCounter analytics. Privacy-friendly, no cookies. https://www.goatcounter.com
          no_onload disables the script's automatic pageview so AnalyticsRouteTracker can
