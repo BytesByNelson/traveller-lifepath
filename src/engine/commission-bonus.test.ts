@@ -82,6 +82,61 @@ describe('startCommission — pre-career grad bonus', () => {
     const carried = state.prompt.dms.find((d) => d.source === 'Carried DM');
     expect(carried).toBeUndefined();
   });
+
+  it.each(['army', 'marine', 'navy'] as const)(
+    'University grad bonus applies on first term of %s',
+    (careerId) => {
+      let c = newCharacter('id', 'Cadet', 'human');
+      c = setChar(c, { SOC: 8 });
+      c = {
+        ...c,
+        wizardState: {
+          step: 'career_term',
+          preCareerBonus: {
+            qualifyDM: { dm: 0, careers: [] },
+            commission: { dm: 2, auto: false }, // university grad: no tiedTo
+          },
+        },
+      };
+      const state = startCommission(c, CAREERS[careerId], 0, () => 0.5);
+      if (state.prompt?.kind !== 'check') throw new Error('expected check');
+      const carried = state.prompt.dms.find((d) => d.source === 'Carried DM');
+      expect(carried?.value).toBe(2);
+    },
+  );
+
+  it.each([
+    ['army', 'army', true],
+    ['army', 'marine', false],
+    ['army', 'navy', false],
+    ['marine', 'army', false],
+    ['marine', 'marine', true],
+    ['marine', 'navy', false],
+    ['navy', 'army', false],
+    ['navy', 'marine', false],
+    ['navy', 'navy', true],
+  ] as const)(
+    'Military Academy %s grad: bonus on %s career → %s',
+    (academy, joining, expectApply) => {
+      let c = newCharacter('id', 'Cadet', 'human');
+      c = setChar(c, { SOC: 8 });
+      c = {
+        ...c,
+        wizardState: {
+          step: 'career_term',
+          preCareerBonus: {
+            qualifyDM: { dm: 0, careers: [] },
+            commission: { dm: 2, auto: false, tiedTo: academy },
+          },
+        },
+      };
+      const state = startCommission(c, CAREERS[joining], 0, () => 0.5);
+      if (state.prompt?.kind !== 'check') throw new Error('expected check');
+      const carried = state.prompt.dms.find((d) => d.source === 'Carried DM');
+      if (expectApply) expect(carried?.value).toBe(2);
+      else expect(carried).toBeUndefined();
+    },
+  );
 });
 
 describe('isAutoCommissioned', () => {
