@@ -76,9 +76,10 @@ describe('Pre-career education — outcome screens', () => {
 
     // The pre-career 2D event roll is non-deterministic (uses Math.random). Depending on
     // the result we either pause on a follow-up prompt ("Pre-career event" heading) or
-    // skip straight to the result screen ("Pre-career event — result" heading). Either
-    // outcome means we successfully advanced past the entry-outcome screen.
-    expect(screen.getByRole('heading', { name: /Pre-career event/ })).toBeInTheDocument();
+    // skip straight to the result screen ("Pre-career event — result" heading), and a
+    // sub-prompt may also surface its own heading. Constrain to level-2 headings so we
+    // match exactly one wizard-section heading regardless of which path we took.
+    expect(screen.getByRole('heading', { level: 2, name: /Pre-career event/ })).toBeInTheDocument();
   });
 
   it('shows a denial card after a failed entry, with an option to return to the chooser', async () => {
