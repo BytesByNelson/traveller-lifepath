@@ -46,10 +46,11 @@ describe('University entry failure', () => {
       <PreCareerEducationStep character={current} onChange={onChange} onSkip={vi.fn()} onComplete={vi.fn()} />,
     );
 
-    // Pick level-0 = Animals, level-1 = Art.
+    // Pick level-0 = Animals (parent at level 0 is RAW-valid, no spec needed),
+    // level-1 = Admin (no specs, so no sub-pick is required).
     const selects = screen.getAllByRole('combobox');
     await user.selectOptions(selects[0]!, 'Animals');
-    await user.selectOptions(selects[1]!, 'Art');
+    await user.selectOptions(selects[1]!, 'Admin');
     await user.click(screen.getByRole('button', { name: /Continue → Entry roll/ }));
     rerender(
       <PreCareerEducationStep character={current} onChange={onChange} onSkip={vi.fn()} onComplete={vi.fn()} />,
@@ -57,7 +58,7 @@ describe('University entry failure', () => {
 
     // At this point the picks were SAVED but skills should NOT yet be on the character.
     expect(current.backgroundSkills.find((s) => s.name === 'Animals')).toBeUndefined();
-    expect(current.backgroundSkills.find((s) => s.name === 'Art')).toBeUndefined();
+    expect(current.backgroundSkills.find((s) => s.name === 'Admin')).toBeUndefined();
     // Education taken flag should also still be unset until success.
     expect(current.wizardState?.preCareerEducationTaken).toBeFalsy();
 
@@ -73,7 +74,7 @@ describe('University entry failure', () => {
     expect(screen.getByText(/Application denied/)).toBeInTheDocument();
     // No phantom skills landed on the character.
     expect(current.backgroundSkills.find((s) => s.name === 'Animals')).toBeUndefined();
-    expect(current.backgroundSkills.find((s) => s.name === 'Art')).toBeUndefined();
+    expect(current.backgroundSkills.find((s) => s.name === 'Admin')).toBeUndefined();
     // Education-taken flag should also remain unset.
     expect(current.wizardState?.preCareerEducationTaken).toBeFalsy();
   });

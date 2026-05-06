@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import type { Character, RollLogEntry, SkillName } from '../types';
-import { MILITARY_ACADEMY, PRE_CAREER_EVENTS, UNIVERSITY } from '../data';
+import { MILITARY_ACADEMY, PRE_CAREER_EVENTS, SKILLS, UNIVERSITY } from '../data';
 import { usePhaseUndoReset } from './usePhaseUndoReset';
 import {
   startMilitaryAcademyEntry,
@@ -15,12 +15,14 @@ import { debug } from '../debug';
 
 type Track = 'university' | 'army' | 'marine' | 'navy';
 
-/** University picks made on the skills page, deferred until entry succeeds. */
-type PendingUniversitySkills = { level0: SkillName; level1: SkillName };
+/** University picks made on the skills page, deferred until entry succeeds.
+ *  level1Spec carries the specialization when level1 is a parent skill (Profession,
+ *  Science, Engineer, Pilot, etc.) — required at level 1+ per Mongoose 2022 p60. */
+type PendingUniversitySkills = { level0: SkillName; level1: SkillName; level1Spec?: string };
 
 type Phase =
   | { kind: 'choose' }
-  | { kind: 'university_skills'; level0?: SkillName; level1?: SkillName }
+  | { kind: 'university_skills'; level0?: SkillName; level1?: SkillName; level1Spec?: string }
   | { kind: 'entry_check'; track: Track; engine: EngineState; pendingUniversitySkills?: PendingUniversitySkills }
   | {
       kind: 'entry_outcome';
@@ -143,6 +145,9 @@ export function PreCareerEducationStep({
   }
 
   if (phase.kind === 'university_skills') {
+    const level1Def = phase.level1 ? SKILLS[phase.level1] : undefined;
+    const level1NeedsSpec = !!level1Def && level1Def.specs.length > 0;
+    const level1SpecMissing = level1NeedsSpec && !phase.level1Spec;
     return (
       <section className="space-y-4">
         <h2 className="text-xl font-semibold">University — pick skills</h2>
@@ -161,12 +166,41 @@ export function PreCareerEducationStep({
             label="Level 1 skill"
             value={phase.level1}
             options={UNIVERSITY.skillPickList}
-            onChange={(v) => setPhase({ ...phase, level1: v })}
+            onChange={(v) => setPhase({ ...phase, level1: v, level1Spec: undefined })}
           />
         </div>
 
+        {level1NeedsSpec && level1Def ? (
+          <div>
+            <label className="block">
+              <span className="text-xs text-gray-600">
+                Pick a specialization for {phase.level1} — required at level 1 per Mongoose 2022 p60.
+              </span>
+              <select
+                value={phase.level1Spec ?? ''}
+                onChange={(e) => setPhase({ ...phase, level1Spec: e.target.value || undefined })}
+                className="mt-1 block w-full px-2 py-1 border border-gray-300 rounded text-sm"
+              >
+                <option value="" disabled>
+                  Pick a specialization
+                </option>
+                {level1Def.specs.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+        ) : null}
+
         <button
-          disabled={!phase.level0 || !phase.level1 || phase.level0 === phase.level1}
+          disabled={
+            !phase.level0 ||
+            !phase.level1 ||
+            phase.level0 === phase.level1 ||
+            level1SpecMissing
+          }
           onClick={() => {
             // Skills + the "education taken" flag are NOT applied yet — only on entry success.
             // If the player fails the entry roll, no skills should land on the sheet and
@@ -177,7 +211,11 @@ export function PreCareerEducationStep({
               kind: 'entry_check',
               track: 'university',
               engine: state,
-              pendingUniversitySkills: { level0: phase.level0!, level1: phase.level1! },
+              pendingUniversitySkills: {
+                level0: phase.level0!,
+                level1: phase.level1!,
+                ...(phase.level1Spec ? { level1Spec: phase.level1Spec } : {}),
+              },
             });
           }}
           className="px-4 py-2 rounded bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 disabled:opacity-50"
@@ -231,7 +269,13 @@ export function PreCareerEducationStep({
               {phase.pendingUniversitySkills ? (
                 <p className="mt-1">
                   Granted: <strong>{phase.pendingUniversitySkills.level0}</strong> at level 0,{' '}
-                  <strong>{phase.pendingUniversitySkills.level1}</strong> at level 1.
+                  <strong>
+                    {phase.pendingUniversitySkills.level1}
+                    {phase.pendingUniversitySkills.level1Spec
+                      ? ` (${phase.pendingUniversitySkills.level1Spec})`
+                      : ''}
+                  </strong>{' '}
+                  at level 1.
                 </p>
               ) : null}
             </div>
@@ -246,6 +290,7 @@ export function PreCareerEducationStep({
                     next,
                     phase.pendingUniversitySkills.level0,
                     phase.pendingUniversitySkills.level1,
+                    phase.pendingUniversitySkills.level1Spec,
                   );
                 }
                 next = markPreCareerEducationTaken(next);
@@ -695,15 +740,37 @@ function markPreCareerEducationTaken(c: Character): Character {
   };
 }
 
-function grantSkillsForUniversity(c: Character, level0: SkillName, level1: SkillName): Character {
+function grantSkillsForUniversity(
+  c: Character,
+  level0: SkillName,
+  level1: SkillName,
+  level1Spec?: string,
+): Character {
   const list = [...c.backgroundSkills];
-  for (const [name, level] of [[level0, 0], [level1, 1]] as const) {
-    const idx = list.findIndex((s) => s.name === name && !s.spec);
-    if (idx === -1) {
-      list.push({ name, level, source: { kind: 'pre_career_education', institution: 'university' } });
-    } else if (level > list[idx]!.level) {
-      list[idx] = { ...list[idx]!, level };
-    }
+  // Level 0: parent skill at no-spec is RAW-valid ("all specs at 0"), so we never
+  // attach a spec here even if level0 names a parent.
+  const idx0 = list.findIndex((s) => s.name === level0 && !s.spec);
+  if (idx0 === -1) {
+    list.push({ name: level0, level: 0, source: { kind: 'pre_career_education', institution: 'university' } });
+  } // (level 0 is the floor; no upgrade path needed)
+
+  // Level 1: parent skills MUST carry a spec per Mongoose 2022 p60. The picker
+  // enforces this; if level1Spec is missing we still defensively skip writing
+  // an invalid no-spec parent at level 1.
+  const def = SKILLS[level1];
+  const needsSpec = !!def && def.specs.length > 0;
+  if (needsSpec && !level1Spec) return { ...c, backgroundSkills: list };
+  const spec = needsSpec ? level1Spec : undefined;
+  const idx1 = list.findIndex((s) => s.name === level1 && (s.spec ?? '') === (spec ?? ''));
+  if (idx1 === -1) {
+    list.push({
+      name: level1,
+      ...(spec ? { spec } : {}),
+      level: 1,
+      source: { kind: 'pre_career_education', institution: 'university' },
+    });
+  } else if (1 > list[idx1]!.level) {
+    list[idx1] = { ...list[idx1]!, level: 1 };
   }
   return { ...c, backgroundSkills: list };
 }
