@@ -43,7 +43,7 @@ export function EditableTextarea({
         }}
         rows={rows}
         aria-label={ariaLabel}
-        className={`w-full px-2 py-1 border border-indigo-400 rounded bg-white text-sm resize-y ${className}`}
+        className={`w-full px-2 py-1 border border-red-400 rounded bg-white text-sm resize-y ${className}`}
       />
     );
   }

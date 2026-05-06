@@ -218,7 +218,7 @@ export function PreCareerEducationStep({
               },
             });
           }}
-          className="px-4 py-2 rounded bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 disabled:opacity-50"
+          className="px-4 py-2 rounded bg-red-700 text-white text-sm font-medium hover:bg-red-800 disabled:opacity-50"
         >
           Continue → Entry roll
         </button>
@@ -307,7 +307,7 @@ export function PreCareerEducationStep({
                   setPhase({ kind: 'event', track: phase.track, engine: event });
                 }
               }}
-              className="px-4 py-2 rounded bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700"
+              className="px-4 py-2 rounded bg-red-700 text-white text-sm font-medium hover:bg-red-800"
             >
               Continue → Pre-career event
             </button>
@@ -323,7 +323,7 @@ export function PreCareerEducationStep({
             </div>
             <button
               onClick={() => setPhase({ kind: 'choose' })}
-              className="px-4 py-2 rounded bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700"
+              className="px-4 py-2 rounded bg-red-700 text-white text-sm font-medium hover:bg-red-800"
             >
               Back to track selection
             </button>
@@ -341,8 +341,8 @@ export function PreCareerEducationStep({
       <section className="space-y-4">
         <h2 className="text-xl font-semibold">Pre-career event</h2>
         {eventRow ? (
-          <div className="rounded border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm space-y-1">
-            <div className="text-xs uppercase tracking-wide text-indigo-700">Event roll: {eventRoll}</div>
+          <div className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm space-y-1">
+            <div className="text-xs uppercase tracking-wide text-red-800">Event roll: {eventRoll}</div>
             <p className="text-gray-800">{eventRow.text}</p>
           </div>
         ) : null}
@@ -442,7 +442,7 @@ export function PreCareerEducationStep({
                 : startMilitaryAcademyGraduation(character, Math.random);
             setPhase({ kind: 'graduation_check', track: phase.track, engine: grad });
           }}
-          className="px-4 py-2 rounded bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700"
+          className="px-4 py-2 rounded bg-red-700 text-white text-sm font-medium hover:bg-red-800"
         >
           Continue → Graduation roll
         </button>
@@ -518,7 +518,7 @@ export function PreCareerEducationStep({
             onChange(next);
             setPhase({ kind: 'done', track: phase.track, success: phase.success, honours: phase.honours });
           }}
-          className="px-4 py-2 rounded bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700"
+          className="px-4 py-2 rounded bg-red-700 text-white text-sm font-medium hover:bg-red-800"
         >
           Continue → Career term
         </button>
@@ -531,7 +531,7 @@ export function PreCareerEducationStep({
       <h2 className="text-xl font-semibold">Pre-career education complete</h2>
       <button
         onClick={onComplete}
-        className="px-4 py-2 rounded bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700"
+        className="px-4 py-2 rounded bg-red-700 text-white text-sm font-medium hover:bg-red-800"
       >
         Continue → Career term
       </button>

@@ -1,6 +1,7 @@
 import { Suspense, lazy, type ComponentType } from 'react';
 import { Outlet, createHashRouter, useRouteError } from 'react-router-dom';
 import { AnalyticsRouteTracker } from './components/AnalyticsRouteTracker';
+import { ThemeSwitcher } from './components/ThemeSwitcher';
 
 /**
  * Wrap a lazy() loader so a stale-chunk failure (most common cause: a new build
@@ -78,7 +79,7 @@ const RouteErrorBoundary = () => {
       </p>
       <button
         onClick={() => window.location.reload()}
-        className="px-4 py-2 rounded bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700"
+        className="px-4 py-2 rounded bg-red-700 text-white text-sm font-medium hover:bg-red-800"
       >
         Reload
       </button>
@@ -102,6 +103,9 @@ const RootLayout = () => (
   <>
     <AnalyticsRouteTracker />
     <Outlet />
+    <div className="fixed top-3 right-3 z-50 print:hidden">
+      <ThemeSwitcher />
+    </div>
   </>
 );
 

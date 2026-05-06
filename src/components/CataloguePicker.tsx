@@ -24,7 +24,7 @@ export function CataloguePicker(props: Props) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="text-xs text-indigo-600 hover:text-indigo-800 print:hidden"
+        className="text-xs text-red-700 hover:text-red-900 print:hidden"
       >
         {label}
       </button>
@@ -93,7 +93,7 @@ function PickerModal(props: Props & { onClose: () => void }) {
                   selectByKind(props, it);
                   props.onClose();
                 }}
-                className="w-full text-left px-3 py-2 rounded border border-gray-200 hover:border-indigo-400 hover:bg-indigo-50 text-sm"
+                className="w-full text-left px-3 py-2 rounded border border-gray-200 hover:border-red-400 hover:bg-red-50 text-sm"
               >
                 {renderRow(it)}
               </button>

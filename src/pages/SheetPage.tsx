@@ -18,7 +18,7 @@ export function SheetPage() {
     return (
       <main className="p-6 max-w-3xl mx-auto">
         <p className="text-gray-500">No Traveller with that ID.</p>
-        <button onClick={() => navigate('/')} className="mt-3 text-indigo-600 hover:underline text-sm">
+        <button onClick={() => navigate('/')} className="mt-3 text-red-700 hover:underline text-sm">
           ← Back to list
         </button>
       </main>

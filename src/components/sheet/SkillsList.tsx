@@ -127,7 +127,7 @@ function AddSkillRow({ onAdd }: { onAdd: (ref: { name: SkillName; spec?: string 
     return (
       <button
         onClick={() => setAdding(true)}
-        className="text-xs text-indigo-600 hover:text-indigo-800 mt-2 print:hidden"
+        className="text-xs text-red-700 hover:text-red-900 mt-2 print:hidden"
       >
         + Add skill
       </button>
@@ -135,7 +135,7 @@ function AddSkillRow({ onAdd }: { onAdd: (ref: { name: SkillName; spec?: string 
   }
   const def = SKILLS[name];
   return (
-    <div className="mt-2 print:hidden text-xs space-y-2 border border-indigo-200 bg-indigo-50/40 rounded p-2">
+    <div className="mt-2 print:hidden text-xs space-y-2 border border-red-200 bg-red-50/40 rounded p-2">
       <div className="flex flex-wrap gap-1 items-center">
         <select
           value={name}
@@ -172,7 +172,7 @@ function AddSkillRow({ onAdd }: { onAdd: (ref: { name: SkillName; spec?: string 
             setName('Admin');
             setSpec('');
           }}
-          className="px-2 py-0.5 rounded bg-indigo-600 text-white"
+          className="px-2 py-0.5 rounded bg-red-700 text-white"
         >
           Add at level 1
         </button>

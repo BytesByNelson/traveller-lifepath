@@ -59,7 +59,7 @@ export function EditableText({
         }}
         size={size}
         aria-label={ariaLabel}
-        className={`px-1 -mx-1 border border-indigo-400 rounded bg-white text-sm ${className}`}
+        className={`px-1 -mx-1 border border-red-400 rounded bg-white text-sm ${className}`}
       />
     );
   }

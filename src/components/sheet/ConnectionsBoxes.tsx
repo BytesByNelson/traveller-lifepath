@@ -127,7 +127,7 @@ function ConnectionPanel({
               <td colSpan={3} className="pt-1">
                 <button
                   onClick={add}
-                  className="text-xs text-indigo-600 hover:text-indigo-800"
+                  className="text-xs text-red-700 hover:text-red-900"
                   aria-label={`Add ${type}`}
                 >
                   + Add {type}

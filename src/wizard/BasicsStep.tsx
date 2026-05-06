@@ -37,7 +37,7 @@ export function BasicsStep({
                 key={id}
                 onClick={() => onChange({ ...character, species: id })}
                 className={`px-3 py-2 rounded border text-left ${
-                  selected ? 'border-indigo-600 bg-indigo-50' : 'border-gray-300 hover:bg-gray-50'
+                  selected ? 'border-red-700 bg-red-50' : 'border-gray-300 hover:bg-gray-50'
                 }`}
               >
                 <div className="font-medium">{s.name}</div>
@@ -98,7 +98,7 @@ export function BasicsStep({
                   })
                 }
                 className={`px-3 py-2 rounded border text-left ${
-                  selected ? 'border-indigo-600 bg-indigo-50' : 'border-gray-300 hover:bg-gray-50'
+                  selected ? 'border-red-700 bg-red-50' : 'border-gray-300 hover:bg-gray-50'
                 }`}
               >
                 <div className="font-medium text-sm">{title}</div>
@@ -139,7 +139,7 @@ export function BasicsStep({
       <button
         onClick={onNext}
         disabled={!character.name.trim() || !character.wizardState?.rollMode}
-        className="px-4 py-2 rounded bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 disabled:opacity-50"
+        className="px-4 py-2 rounded bg-red-700 text-white text-sm font-medium hover:bg-red-800 disabled:opacity-50"
       >
         Continue → Characteristics
       </button>

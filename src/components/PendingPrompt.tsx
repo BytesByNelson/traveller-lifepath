@@ -163,7 +163,7 @@ function PickCatalogueItemPrompt({ state, onUpdate }: Props) {
             <li key={it.id}>
               <button
                 onClick={() => onUpdate(resolvePickCatalogueItem(state, it.id))}
-                className="w-full text-left px-3 py-2 rounded border border-gray-200 hover:border-indigo-400 hover:bg-indigo-50 text-sm"
+                className="w-full text-left px-3 py-2 rounded border border-gray-200 hover:border-red-400 hover:bg-red-50 text-sm"
               >
                 <div className="font-medium">
                   {it.name}
@@ -285,7 +285,7 @@ function PickSkillPrompt({ state, onUpdate }: Props) {
       <button
         disabled={!picked || (showSpecPicker && p.level !== 0 && !picked.spec)}
         onClick={() => picked && onUpdate(resolvePickSkill(state, picked as SkillRef))}
-        className="mt-3 px-3 py-1.5 rounded bg-indigo-600 text-white text-sm hover:bg-indigo-700 disabled:opacity-50"
+        className="mt-3 px-3 py-1.5 rounded bg-red-700 text-white text-sm hover:bg-red-800 disabled:opacity-50"
       >
         Confirm
       </button>
@@ -380,7 +380,7 @@ function NameConnectionPrompt({ state, onUpdate }: Props) {
           onUpdate(resolveNameConnection(state, name));
           setName('');
         }}
-        className="mt-3 px-3 py-1.5 rounded bg-indigo-600 text-white text-sm hover:bg-indigo-700"
+        className="mt-3 px-3 py-1.5 rounded bg-red-700 text-white text-sm hover:bg-red-800"
       >
         Add
       </button>

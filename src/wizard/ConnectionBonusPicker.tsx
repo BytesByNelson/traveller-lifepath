@@ -79,7 +79,7 @@ export function ConnectionBonusPicker({
         <div className="flex flex-wrap gap-1">
           <button
             type="button"
-            className={`text-xs px-2 py-0.5 rounded border ${spec === undefined ? 'border-indigo-600 bg-white' : 'border-gray-300 hover:bg-white'}`}
+            className={`text-xs px-2 py-0.5 rounded border ${spec === undefined ? 'border-red-700 bg-white' : 'border-gray-300 hover:bg-white'}`}
             onClick={() => setSpec(undefined)}
           >
             (no spec)
@@ -88,7 +88,7 @@ export function ConnectionBonusPicker({
             <button
               key={sp}
               type="button"
-              className={`text-xs px-2 py-0.5 rounded border ${spec === sp ? 'border-indigo-600 bg-white' : 'border-gray-300 hover:bg-white'}`}
+              className={`text-xs px-2 py-0.5 rounded border ${spec === sp ? 'border-red-700 bg-white' : 'border-gray-300 hover:bg-white'}`}
               onClick={() => setSpec(sp)}
             >
               {sp}

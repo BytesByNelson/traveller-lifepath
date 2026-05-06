@@ -66,7 +66,7 @@ export function EditableNumber({
         max={max}
         size={size}
         aria-label={ariaLabel}
-        className={`w-14 px-1 -mx-1 border border-indigo-400 rounded bg-white text-sm ${className}`}
+        className={`w-14 px-1 -mx-1 border border-red-400 rounded bg-white text-sm ${className}`}
       />
     );
   }

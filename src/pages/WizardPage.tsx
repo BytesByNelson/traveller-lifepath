@@ -28,7 +28,7 @@ export function WizardPage() {
     return (
       <main className="p-6 max-w-3xl mx-auto">
         <p className="text-gray-500">No Traveller with that ID. They may have been lost on a jump.</p>
-        <button onClick={() => navigate('/')} className="mt-3 text-indigo-600 hover:underline text-sm">
+        <button onClick={() => navigate('/')} className="mt-3 text-red-700 hover:underline text-sm">
           ← Back to list
         </button>
       </main>
@@ -149,7 +149,7 @@ export function WizardPage() {
             <p className="text-gray-600">Character creation complete.</p>
             <button
               onClick={() => navigate(`/sheet/${character.id}`)}
-              className="px-4 py-2 rounded bg-indigo-600 text-white text-sm hover:bg-indigo-700"
+              className="px-4 py-2 rounded bg-red-700 text-white text-sm hover:bg-red-800"
             >
               Go to character sheet
             </button>
@@ -162,7 +162,7 @@ export function WizardPage() {
         <div>
           <div className="flex items-baseline justify-between mb-1">
             <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500">Roll log</h3>
-            <button onClick={() => setLogOpen(true)} className="text-xs text-indigo-600 hover:text-indigo-800">
+            <button onClick={() => setLogOpen(true)} className="text-xs text-red-700 hover:text-red-900">
               Open full log
             </button>
           </div>
@@ -199,9 +199,9 @@ function Stepper({ step }: { step: WizardStep }) {
             key={s.id}
             className={`px-2 py-1 rounded ${
               active
-                ? 'bg-indigo-600 text-white'
+                ? 'bg-red-700 text-white'
                 : done
-                  ? 'bg-indigo-100 text-indigo-700'
+                  ? 'bg-red-100 text-red-800'
                   : 'bg-gray-100 text-gray-500'
             }`}
           >

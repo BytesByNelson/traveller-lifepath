@@ -166,7 +166,7 @@ export function CharacteristicsStep({
         <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={rollPool}
-            className="px-4 py-2 rounded bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700"
+            className="px-4 py-2 rounded bg-red-700 text-white text-sm font-medium hover:bg-red-800"
             title={
               pool.length === 0 && !anyAssigned
                 ? 'Roll 2D × 6 into a pool'
@@ -188,15 +188,15 @@ export function CharacteristicsStep({
       ) : null}
 
       {rollMode === 'app' && pool.length > 0 ? (
-        <div className="rounded border border-indigo-200 bg-indigo-50 p-2">
-          <div className="text-xs font-medium text-indigo-900 mb-1">
+        <div className="rounded border border-red-200 bg-red-50 p-2">
+          <div className="text-xs font-medium text-red-950 mb-1">
             Pool ({pool.length} {pool.length === 1 ? 'value' : 'values'} remaining):
           </div>
           <div className="flex flex-wrap gap-1">
             {pool.map((v, i) => (
               <span
                 key={i}
-                className="inline-block px-2 py-0.5 rounded bg-white border border-indigo-300 text-sm font-mono"
+                className="inline-block px-2 py-0.5 rounded bg-white border border-red-300 text-sm font-mono"
               >
                 {v}
               </span>
@@ -326,7 +326,7 @@ export function CharacteristicsStep({
                     </div>
                   ) : pool.length > 0 ? (
                     <select
-                      className="text-xs px-1 py-0.5 border border-indigo-300 rounded bg-white"
+                      className="text-xs px-1 py-0.5 border border-red-300 rounded bg-white"
                       value=""
                       onChange={(e) => {
                         const n = Number(e.target.value);
@@ -432,7 +432,7 @@ export function CharacteristicsStep({
               ? `Spend exactly ${POINT_BUY_BUDGET} points before continuing (currently ${totalPoints})`
               : ''
           }
-          className="px-4 py-2 rounded bg-indigo-600 text-white text-sm hover:bg-indigo-700 disabled:opacity-50"
+          className="px-4 py-2 rounded bg-red-700 text-white text-sm hover:bg-red-800 disabled:opacity-50"
         >
           Continue → Background skills
         </button>

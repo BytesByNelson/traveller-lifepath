@@ -18,6 +18,27 @@
     <meta http-equiv="pragma" content="no-cache" />
     <meta http-equiv="expires" content="0" />
     <title>Traveller Lifepath</title>
+    <!--
+      Theme bootstrap — runs synchronously before React mounts. If the user
+      previously picked the Imperial (dark) theme (or 'system' on a dark OS),
+      apply the .dark class up-front so the page doesn't flash light first.
+      Default is LBB (light); doing nothing leaves <html> without the class.
+    -->
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem('traveller:theme');
+          var dark =
+            t === 'imperial' ||
+            (t === 'system' &&
+              window.matchMedia &&
+              window.matchMedia('(prefers-color-scheme: dark)').matches);
+          if (dark) document.documentElement.classList.add('dark');
+        } catch (e) {
+          /* noop */
+        }
+      })();
+    </script>
     <!-- GoatCounter analytics. Privacy-friendly, no cookies. https://www.goatcounter.com
          no_onload disables the script's automatic pageview so AnalyticsRouteTracker can
          own counting (the app uses HashRouter and would otherwise lose every route change). -->

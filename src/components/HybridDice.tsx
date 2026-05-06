@@ -74,7 +74,7 @@ export function HybridDice({ title, target, dms, dice = '2D', onResult, rng, mod
           <button
             type="button"
             onClick={rollForMe}
-            className="px-3 py-1.5 rounded bg-indigo-600 text-white text-sm hover:bg-indigo-700"
+            className="px-3 py-1.5 rounded bg-red-700 text-white text-sm hover:bg-red-800"
           >
             Roll for me ({dice})
           </button>

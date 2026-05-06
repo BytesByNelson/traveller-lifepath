@@ -29,7 +29,7 @@ export function CareersHistory({ character }: { character: Character }) {
               </td>
               <td className="py-1 pr-2">
                 {rankTitle(t)} <span className="text-gray-500">({t.rankAtEnd})</span>
-                {t.isOfficer ? <span className="text-[9px] uppercase text-indigo-600 ml-1">officer</span> : null}
+                {t.isOfficer ? <span className="text-[9px] uppercase text-red-700 ml-1">officer</span> : null}
               </td>
               <td className="py-1 pr-2 text-[10px] text-gray-600">
                 {t.termOutcome === 'continued' ? '' : t.termOutcome.replace('_', ' ')}

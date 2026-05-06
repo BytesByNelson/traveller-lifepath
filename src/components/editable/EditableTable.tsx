@@ -98,7 +98,7 @@ export function EditableTable<T extends { id: string }>({
           <td colSpan={columns.length + 1} className="pt-1">
             <button
               onClick={addRow}
-              className="text-xs text-indigo-600 hover:text-indigo-800"
+              className="text-xs text-red-700 hover:text-red-900"
             >
               + Add row
             </button>

@@ -294,7 +294,7 @@ export function CareerTermStep({
                   }}
                   className={`w-full text-left px-3 py-2 rounded border transition-colors ${
                     isFocused
-                      ? 'border-indigo-500 bg-indigo-50 ring-2 ring-indigo-300 ring-offset-1'
+                      ? 'border-red-500 bg-red-50 ring-2 ring-red-300 ring-offset-1'
                       : 'border-gray-300 hover:bg-gray-50'
                   } disabled:opacity-50 disabled:cursor-not-allowed`}
                   title={disabledReason}
@@ -339,7 +339,7 @@ export function CareerTermStep({
                 <button
                   disabled={!!focused.flags?.enforcedEntry || isLockedJustLeft(focused.id)}
                   onClick={() => setPhase({ kind: 'pick_assignment', careerId: focused.id })}
-                  className="px-4 py-2 rounded bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-4 py-2 rounded bg-red-700 text-white text-sm font-medium hover:bg-red-800 disabled:opacity-50 disabled:cursor-not-allowed"
                   title={isLockedJustLeft(focused.id)
                     ? `Cannot return to ${focused.name} the term right after leaving (Mongoose 2022 p13).`
                     : undefined}
@@ -468,7 +468,7 @@ export function CareerTermStep({
             </p>
             <button
               onClick={() => setPhase({ kind: 'basic_training', ctx: phase.ctx })}
-              className="px-4 py-2 rounded bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700"
+              className="px-4 py-2 rounded bg-red-700 text-white text-sm font-medium hover:bg-red-800"
             >
               Continue → Basic training
             </button>
@@ -570,7 +570,7 @@ export function CareerTermStep({
                 onChange(next);
                 setPhase({ kind: 'pick_skill_table', ctx: phase.ctx, isExtra: false });
               }}
-              className="px-4 py-2 rounded bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700"
+              className="px-4 py-2 rounded bg-red-700 text-white text-sm font-medium hover:bg-red-800"
             >
               Apply basic training → Skill table
             </button>
@@ -600,7 +600,7 @@ export function CareerTermStep({
                         onChange(next);
                         setPhase({ kind: 'pick_skill_table', ctx: phase.ctx, isExtra: false });
                       }}
-                      className="w-full px-3 py-2 rounded border border-gray-300 hover:border-indigo-400 hover:bg-indigo-50 text-sm text-left"
+                      className="w-full px-3 py-2 rounded border border-gray-300 hover:border-red-400 hover:bg-red-50 text-sm text-left"
                     >
                       {formatRef(ref)}
                     </button>
@@ -659,7 +659,7 @@ export function CareerTermStep({
                   className={`w-full text-left px-3 py-3 rounded border text-sm ${
                     locked
                       ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed'
-                      : 'border-gray-300 hover:border-indigo-400 hover:bg-indigo-50'
+                      : 'border-gray-300 hover:border-red-400 hover:bg-red-50'
                   }`}
                 >
                   <div className="font-medium text-gray-900">{t.label}</div>
@@ -726,7 +726,7 @@ export function CareerTermStep({
                 setPhase({ kind: 'survival', ctx, engine: next });
               }
             }}
-            className="px-4 py-2 rounded bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700"
+            className="px-4 py-2 rounded bg-red-700 text-white text-sm font-medium hover:bg-red-800"
           >
             Continue {phase.isExtra ? '→ Term complete' : '→ Survival roll'}
           </button>
@@ -799,7 +799,7 @@ export function CareerTermStep({
         ) : (
           <button
             onClick={() => proceedToCommissionOrAdvancement(phase.ctx)}
-            className="px-4 py-2 rounded bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700"
+            className="px-4 py-2 rounded bg-red-700 text-white text-sm font-medium hover:bg-red-800"
           >
             Continue
           </button>
@@ -872,7 +872,7 @@ export function CareerTermStep({
                 const state = startCommission(character, career, termsHere, Math.random);
                 setPhase({ kind: 'commission_check', ctx: { ...phase.ctx, commissionAttempted: true }, engine: state });
               }}
-              className="px-4 py-2 rounded bg-indigo-600 text-white text-sm hover:bg-indigo-700"
+              className="px-4 py-2 rounded bg-red-700 text-white text-sm hover:bg-red-800"
             >
               Attempt commission
             </button>
@@ -941,7 +941,7 @@ export function CareerTermStep({
               const next = startAdvancement(character, career, phase.ctx.assignmentId, 0, Math.random);
               setPhase({ kind: 'advancement_check', ctx: { ...phase.ctx, advancementAttempted: true }, engine: next });
             }}
-            className="px-4 py-2 rounded bg-indigo-600 text-white text-sm hover:bg-indigo-700"
+            className="px-4 py-2 rounded bg-red-700 text-white text-sm hover:bg-red-800"
           >
             Roll advancement
           </button>

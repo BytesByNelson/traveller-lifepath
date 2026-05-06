@@ -21,7 +21,7 @@ export function CharacterListPage() {
           <ImportButton onImported={(c) => navigate(`/sheet/${c.id}`)} />
           <button
             onClick={create}
-            className="text-sm px-3 py-1.5 rounded bg-indigo-600 text-white font-medium hover:bg-indigo-700"
+            className="text-sm px-3 py-1.5 rounded bg-red-700 text-white font-medium hover:bg-red-800"
           >
             + New Traveller
           </button>

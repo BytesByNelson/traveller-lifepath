@@ -99,7 +99,7 @@ export function MusteringOutStep({
               setRemaining((m) => ({ ...m, [phase.current.careerId]: m[phase.current.careerId]! - 1 }));
               setPhase({ kind: 'plan' });
             }}
-            className="px-4 py-2 rounded bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700"
+            className="px-4 py-2 rounded bg-red-700 text-white text-sm font-medium hover:bg-red-800"
           >
             Apply benefit
           </button>

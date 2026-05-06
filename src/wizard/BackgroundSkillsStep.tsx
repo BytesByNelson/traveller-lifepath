@@ -56,12 +56,12 @@ export function BackgroundSkillsStep({
               disabled={disabled}
               className={`px-2 py-1.5 rounded border text-sm text-left transition-colors ${
                 selected
-                  ? 'border-indigo-600 bg-indigo-50'
+                  ? 'border-red-700 bg-red-50'
                   : disabled
                     ? 'border-gray-200 text-gray-400 cursor-not-allowed'
                     : 'border-gray-300 hover:bg-gray-50'
-              } ${isFocused && !selected ? 'ring-2 ring-indigo-300 ring-offset-1' : ''} ${
-                isFocused && selected ? 'ring-2 ring-indigo-400 ring-offset-1' : ''
+              } ${isFocused && !selected ? 'ring-2 ring-red-300 ring-offset-1' : ''} ${
+                isFocused && selected ? 'ring-2 ring-red-400 ring-offset-1' : ''
               }`}
               aria-pressed={selected}
             >
@@ -97,7 +97,7 @@ export function BackgroundSkillsStep({
         <button
           onClick={onNext}
           disabled={remaining > 0}
-          className="px-4 py-2 rounded bg-indigo-600 text-white text-sm hover:bg-indigo-700 disabled:opacity-50"
+          className="px-4 py-2 rounded bg-red-700 text-white text-sm hover:bg-red-800 disabled:opacity-50"
         >
           Continue → Career term
         </button>

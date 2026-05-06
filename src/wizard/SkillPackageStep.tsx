@@ -57,7 +57,7 @@ export function SkillPackageStep({
             key={p.id}
             onClick={() => setSelectedId(p.id)}
             className={`px-3 py-2 rounded border text-left text-sm ${
-              selectedId === p.id ? 'border-indigo-600 bg-indigo-50' : 'border-gray-300 hover:bg-gray-50'
+              selectedId === p.id ? 'border-red-700 bg-red-50' : 'border-gray-300 hover:bg-gray-50'
             }`}
           >
             <div className="font-medium">{p.name}</div>
@@ -110,7 +110,7 @@ export function SkillPackageStep({
       <button
         disabled={!pkg || picked.size === 0}
         onClick={apply}
-        className="px-4 py-2 rounded bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 disabled:opacity-50"
+        className="px-4 py-2 rounded bg-red-700 text-white text-sm font-medium hover:bg-red-800 disabled:opacity-50"
       >
         Apply{pkg ? ` ${picked.size} skill${picked.size === 1 ? '' : 's'}` : ''} → Review
       </button>
