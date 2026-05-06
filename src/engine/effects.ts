@@ -169,6 +169,16 @@ export const enqueue = (s: EngineState, effects: Effect[]): EngineState => ({
   queue: [...effects, ...s.queue],
 });
 
+/** Build the log entry context path. Appends the prompt title only if it differs from
+ *  the latest pushed context — prevents "Army qualification / Army qualification"
+ *  duplicates when a top-level check's title is just `state.context.at(-1)`. */
+const buildLogContext = (state: EngineState, title: string): string => {
+  const tail = state.context.at(-1);
+  return title && title !== tail
+    ? [...state.context, title].join(' / ')
+    : state.context.join(' / ');
+};
+
 export const pushContext = (s: EngineState, ctx: string): EngineState => ({
   ...s,
   context: [...s.context, ctx],
@@ -252,7 +262,7 @@ export const resolveCheck = (
   const log: RollLogEntry = {
     id: crypto.randomUUID(),
     ts: Date.now(),
-    context: [...state.context, state.prompt.title].join(' / '),
+    context: buildLogContext(state, state.prompt.title),
     target: effect.roll.target,
     dms: state.prompt.dms,
     natural,
@@ -533,7 +543,7 @@ export const resolveWager = (
   const log: RollLogEntry = {
     id: crypto.randomUUID(),
     ts: Date.now(),
-    context: [...state.context, state.prompt.title].join(' / '),
+    context: buildLogContext(state, state.prompt.title),
     target: e.check.target,
     result: modifiedTotal,
     success,
@@ -856,7 +866,11 @@ const apply = (state: EngineState, e: Effect, rng: Rng): EngineState => {
       return { ...state, prompt: { kind: 'choice', effect: e, title: e.prompt } };
     case 'check': {
       const dms = computeCheckDMs(state, e);
-      return { ...state, prompt: { kind: 'check', effect: e, dms, title: state.context.at(-1) ?? checkTitle(e.roll) } };
+      // Prefer the effect's description when present — for sub-checks inside events
+      // (e.g. event 10's "EDU 9+ to win the academic spat") this gives a specific,
+      // self-explanatory label instead of inheriting the parent context twice.
+      const title = e.description ?? state.context.at(-1) ?? checkTitle(e.roll);
+      return { ...state, prompt: { kind: 'check', effect: e, dms, title } };
     }
     case 'wager_benefit_rolls':
       return { ...state, prompt: { kind: 'wager_benefit_rolls', effect: e, title: state.context.at(-1) ?? 'Wager benefit rolls' } };
