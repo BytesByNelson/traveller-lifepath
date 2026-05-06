@@ -144,6 +144,123 @@ export const setCharacteristic = (c: Character, code: CharCode, base: number): C
   };
 };
 
+/**
+ * Roll six 2D values into wizardState.unassignedRolls without auto-assigning them
+ * to characteristics. The player then assigns each pooled value to a chosen
+ * characteristic via assignFromPool. PSI is rolled separately (psionics players
+ * still get a single PSI roll, kept off the main pool).
+ *
+ * Resets baseCharacteristics to defaults so any prior assignments are cleared
+ * before the new pool — calling this twice in a row is a clean re-roll.
+ */
+export const rollCharacteristicsPool = (c: Character, rng: Rng): Character => {
+  const pool: number[] = [];
+  const log = [...c.rollLog];
+  // Drop any existing pool-context entries from a prior unfinished pool roll.
+  const filteredLog = log.filter((e) => e.context !== 'Roll pool');
+  for (let i = 0; i < CHAR_CODES.length; i++) {
+    const { total } = roll2d(rng);
+    pool.push(total);
+    filteredLog.push({
+      id: crypto.randomUUID(),
+      ts: Date.now(),
+      context: 'Roll pool',
+      result: total,
+      source: 'rng',
+    });
+  }
+  // Strip prior "Roll {code}" entries from earlier assignments so the pool re-roll
+  // starts the log clean for these chars.
+  const cleanLog = filteredLog.filter(
+    (e) => !CHAR_CODES.some((code) => e.context === `Roll ${code}` || e.context === `Roll ${code} (re-roll)`),
+  );
+  const base = { ...DEFAULT_CHAR_VALUES };
+
+  const psionicsEnabled = c.wizardState?.psionicsEnabled === true;
+  let psi = c.psi;
+  if (psionicsEnabled) {
+    const { total } = roll2d(rng);
+    const terms = c.careerHistory.length;
+    const value = Math.max(0, total - terms);
+    psi = { max: value, current: value };
+    cleanLog.push({
+      id: crypto.randomUUID(),
+      ts: Date.now(),
+      context: terms > 0 ? `Roll PSI (2D − ${terms} terms)` : 'Roll PSI',
+      result: value,
+      source: 'rng',
+    });
+  }
+
+  return {
+    ...c,
+    baseCharacteristics: base,
+    characteristics: applySpeciesModifiers(base, c.species),
+    ...(psi !== undefined ? { psi } : {}),
+    rollLog: cleanLog,
+    wizardState: { ...(c.wizardState ?? { step: 'characteristics' }), unassignedRolls: pool },
+  };
+};
+
+/**
+ * Take a value out of the unassigned pool and set it as the base value for
+ * `code`. Updates the matching "Roll pool" log entry to "Roll {code}" so the
+ * roll log reads naturally afterwards. No-op if the value isn't in the pool.
+ */
+export const assignFromPool = (c: Character, code: CharCode, value: number): Character => {
+  const pool = c.wizardState?.unassignedRolls ?? [];
+  const idx = pool.indexOf(value);
+  if (idx < 0) return c;
+  const newPool = [...pool.slice(0, idx), ...pool.slice(idx + 1)];
+  const newBase = { ...c.baseCharacteristics, [code]: value };
+  const log = [...c.rollLog];
+  const logIdx = log.findIndex((e) => e.context === 'Roll pool' && e.result === value);
+  if (logIdx >= 0) log[logIdx] = { ...log[logIdx]!, context: `Roll ${code}` };
+  return {
+    ...c,
+    baseCharacteristics: newBase,
+    characteristics: applySpeciesModifiers(newBase, c.species),
+    rollLog: log,
+    wizardState: { ...(c.wizardState ?? { step: 'characteristics' }), unassignedRolls: newPool },
+  };
+};
+
+/**
+ * Push the currently-assigned value of `code` back into the unassigned pool and
+ * reset that characteristic to its default (7). Mirrors the log-context update
+ * from assignFromPool: the matching "Roll {code}" entry returns to "Roll pool".
+ */
+export const unassignToPool = (c: Character, code: CharCode): Character => {
+  const value = c.baseCharacteristics[code];
+  if (value === DEFAULT_CHAR_VALUES[code]) return c;
+  const pool = [...(c.wizardState?.unassignedRolls ?? []), value];
+  const newBase = { ...c.baseCharacteristics, [code]: DEFAULT_CHAR_VALUES[code] };
+  const log = [...c.rollLog];
+  const logIdx = log.findIndex((e) => e.context === `Roll ${code}` && e.result === value);
+  if (logIdx >= 0) log[logIdx] = { ...log[logIdx]!, context: 'Roll pool' };
+  return {
+    ...c,
+    baseCharacteristics: newBase,
+    characteristics: applySpeciesModifiers(newBase, c.species),
+    rollLog: log,
+    wizardState: { ...(c.wizardState ?? { step: 'characteristics' }), unassignedRolls: pool },
+  };
+};
+
+/** Drain the entire pool into characteristics in CHAR_CODES order — the classic
+ *  "take them as rolled" assignment. Skips any characteristic that's already been
+ *  assigned (non-default base value). */
+export const assignPoolInOrder = (c: Character): Character => {
+  let next = c;
+  for (const code of CHAR_CODES) {
+    const pool = next.wizardState?.unassignedRolls ?? [];
+    if (pool.length === 0) break;
+    if (next.baseCharacteristics[code] !== DEFAULT_CHAR_VALUES[code]) continue;
+    next = assignFromPool(next, code, pool[0]!);
+  }
+  return next;
+};
+
 /** Number of background skills the character may pick: max(0, EDU DM) + 3, capped at 6. */
 export const backgroundSkillCount = (c: Character): number =>
   Math.min(6, Math.max(0, characteristicDM(c.characteristics.EDU)) + 3);

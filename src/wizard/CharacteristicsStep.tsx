@@ -1,8 +1,16 @@
 import { useState } from 'react';
 import { CHAR_CODES, type Character, type CharCode } from '../types';
 import { CHAR_NAMES, characteristicDM, SPECIES } from '../data';
-import { rollAllCharacteristics, setCharacteristic } from '../engine';
+import {
+  assignFromPool,
+  assignPoolInOrder,
+  rollCharacteristicsPool,
+  setCharacteristic,
+  unassignToPool,
+} from '../engine';
 import { roll2d } from '../engine';
+
+const DEFAULT_BASE = 7;
 
 export function CharacteristicsStep({
   character,
@@ -18,17 +26,19 @@ export function CharacteristicsStep({
   const mods = SPECIES[character.species].charModifiers;
   const psionicsEnabled = character.wizardState?.psionicsEnabled === true;
   const rollMode = character.wizardState?.rollMode ?? 'app';
+  const pool = character.wizardState?.unassignedRolls ?? [];
   const [manualValues, setManualValues] = useState<Record<CharCode, string>>({
     STR: '', DEX: '', END: '', INT: '', EDU: '', SOC: '',
   });
   const [manualPsi, setManualPsi] = useState('');
 
-  const rollAll = () => onChange(rollAllCharacteristics(character, Math.random));
+  const rollPool = () => onChange(rollCharacteristicsPool(character, Math.random));
+  const takeInOrder = () => onChange(assignPoolInOrder(character));
+  const assign = (code: CharCode, value: number) => onChange(assignFromPool(character, code, value));
+  const unassign = (code: CharCode) => onChange(unassignToPool(character, code));
   const setManual = (code: CharCode, value: number) =>
     onChange(setCharacteristic(character, code, value));
-  /** Re-roll one characteristic in app mode. Updates baseCharacteristics, applies species
-   *  modifiers, and appends to rollLog with a "(re-roll)" tag so the audit shows which
-   *  values were re-rolled vs. originally rolled. */
+  /** Re-roll one *already-assigned* characteristic in app mode. Pool isn't touched. */
   const reroll = (code: CharCode) => {
     const { total } = roll2d(Math.random);
     const newBase = { ...character.baseCharacteristics, [code]: total };
@@ -102,23 +112,60 @@ export function CharacteristicsStep({
     });
   };
 
+  const isAssigned = (code: CharCode): boolean => character.baseCharacteristics[code] !== DEFAULT_BASE;
+  const anyAssigned = CHAR_CODES.some(isAssigned);
+
   return (
     <section className="space-y-4">
       <h2 className="text-xl font-semibold">Characteristics</h2>
       <p className="text-sm text-gray-600">
         {rollMode === 'app'
-          ? 'Roll 2D for each of the six characteristics. Species modifiers apply automatically.'
+          ? 'Roll 2D × 6 into a pool, then assign each value to the characteristic you want it on. Species modifiers apply automatically.'
           : 'Enter your 2D roll for each characteristic. Species modifiers apply automatically.'}
-        {psionicsEnabled ? ' PSI is rolled too — 2D at creation.' : ''}
+        {psionicsEnabled ? ' PSI is rolled separately — 2D at creation.' : ''}
       </p>
 
       {rollMode === 'app' ? (
-        <button
-          onClick={rollAll}
-          className="px-4 py-2 rounded bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700"
-        >
-          Roll all ({psionicsEnabled ? '2D × 7' : '2D × 6'})
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={rollPool}
+            className="px-4 py-2 rounded bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700"
+            title={
+              pool.length === 0 && !anyAssigned
+                ? 'Roll 2D × 6 into a pool'
+                : 'Re-roll the pool — clears any current assignments'
+            }
+          >
+            {pool.length === 0 && !anyAssigned ? 'Roll pool (2D × 6)' : 'Re-roll pool'}
+          </button>
+          {pool.length > 0 ? (
+            <button
+              onClick={takeInOrder}
+              className="px-3 py-2 rounded border border-gray-300 text-sm hover:bg-gray-50"
+              title="Drain the remaining pool into the unassigned characteristics in order (STR, DEX, END, INT, EDU, SOC)"
+            >
+              Take in order
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+
+      {rollMode === 'app' && pool.length > 0 ? (
+        <div className="rounded border border-indigo-200 bg-indigo-50 p-2">
+          <div className="text-xs font-medium text-indigo-900 mb-1">
+            Pool ({pool.length} {pool.length === 1 ? 'value' : 'values'} remaining):
+          </div>
+          <div className="flex flex-wrap gap-1">
+            {pool.map((v, i) => (
+              <span
+                key={i}
+                className="inline-block px-2 py-0.5 rounded bg-white border border-indigo-300 text-sm font-mono"
+              >
+                {v}
+              </span>
+            ))}
+          </div>
+        </div>
       ) : null}
 
       <table className="w-full text-sm">
@@ -129,7 +176,7 @@ export function CharacteristicsStep({
             <th className="text-right">Species</th>
             <th className="text-right">Final</th>
             <th className="text-right">DM</th>
-            <th className="w-32"></th>
+            <th className="w-44"></th>
           </tr>
         </thead>
         <tbody>
@@ -137,19 +184,24 @@ export function CharacteristicsStep({
             const base = character.baseCharacteristics[code];
             const final = character.characteristics[code];
             const mod = (mods as Record<CharCode, number | undefined>)[code] ?? 0;
+            const assigned = isAssigned(code);
             return (
               <tr key={code} className="border-t border-gray-200">
                 <td className="py-1.5 font-medium">{code}</td>
-                <td className="text-right">{base}</td>
+                <td className="text-right">{assigned ? base : <span className="text-gray-400">—</span>}</td>
                 <td className={`text-right ${mod < 0 ? 'text-red-600' : mod > 0 ? 'text-emerald-700' : 'text-gray-400'}`}>
                   {mod === 0 ? '—' : (mod > 0 ? `+${mod}` : mod)}
                 </td>
-                <td className="text-right font-semibold">{final}</td>
+                <td className="text-right font-semibold">{assigned ? final : <span className="text-gray-400">—</span>}</td>
                 <td className="text-right">
-                  <span className={characteristicDM(final) < 0 ? 'text-red-600' : 'text-gray-700'}>
-                    {characteristicDM(final) > 0 ? '+' : ''}
-                    {characteristicDM(final)}
-                  </span>
+                  {assigned ? (
+                    <span className={characteristicDM(final) < 0 ? 'text-red-600' : 'text-gray-700'}>
+                      {characteristicDM(final) > 0 ? '+' : ''}
+                      {characteristicDM(final)}
+                    </span>
+                  ) : (
+                    <span className="text-gray-400">—</span>
+                  )}
                 </td>
                 <td className="text-right">
                   {rollMode === 'manual' ? (
@@ -178,25 +230,44 @@ export function CharacteristicsStep({
                         Set
                       </button>
                     </>
+                  ) : assigned ? (
+                    <div className="flex items-center justify-end gap-1">
+                      <button
+                        type="button"
+                        onClick={() => unassign(code)}
+                        className="text-xs px-2 py-0.5 border border-gray-300 rounded hover:bg-gray-50 text-gray-600"
+                        title={`Return ${CHAR_NAMES[code]}'s value to the pool`}
+                      >
+                        Unassign
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => reroll(code)}
+                        className="text-xs px-2 py-0.5 border border-gray-300 rounded hover:bg-gray-50 text-gray-600"
+                        title={`Re-roll ${CHAR_NAMES[code]} — appends to roll log, replaces value.`}
+                      >
+                        Re-roll
+                      </button>
+                    </div>
+                  ) : pool.length > 0 ? (
+                    <select
+                      className="text-xs px-1 py-0.5 border border-indigo-300 rounded bg-white"
+                      value=""
+                      onChange={(e) => {
+                        const n = Number(e.target.value);
+                        if (Number.isInteger(n)) assign(code, n);
+                      }}
+                      title={`Assign a value from the pool to ${CHAR_NAMES[code]}`}
+                    >
+                      <option value="">Assign…</option>
+                      {pool.map((v, i) => (
+                        <option key={i} value={v}>
+                          {v}
+                        </option>
+                      ))}
+                    </select>
                   ) : (
-                    (() => {
-                      const hasRolled = character.rollLog.some(
-                        (r) => r.context === `Roll ${code}` || r.context === `Roll ${code} (re-roll)`,
-                      );
-                      if (!hasRolled) {
-                        return <span className="text-xs text-gray-400">— pending —</span>;
-                      }
-                      return (
-                        <button
-                          type="button"
-                          onClick={() => reroll(code)}
-                          className="text-xs px-2 py-0.5 border border-gray-300 rounded hover:bg-gray-50 text-gray-600"
-                          title={`Re-roll ${CHAR_NAMES[code]} — appends to roll log, replaces value.`}
-                        >
-                          Re-roll
-                        </button>
-                      );
-                    })()
+                    <span className="text-xs text-gray-400">— pending —</span>
                   )}
                 </td>
               </tr>
@@ -273,7 +344,16 @@ export function CharacteristicsStep({
         <button onClick={onBack} className="px-4 py-2 rounded border border-gray-300 text-sm hover:bg-gray-50">
           Back
         </button>
-        <button onClick={onNext} className="px-4 py-2 rounded bg-indigo-600 text-white text-sm hover:bg-indigo-700">
+        <button
+          onClick={onNext}
+          disabled={rollMode === 'app' && pool.length > 0}
+          title={
+            rollMode === 'app' && pool.length > 0
+              ? `Assign the remaining ${pool.length} pool ${pool.length === 1 ? 'value' : 'values'} before continuing`
+              : ''
+          }
+          className="px-4 py-2 rounded bg-indigo-600 text-white text-sm hover:bg-indigo-700 disabled:opacity-50"
+        >
           Continue → Background skills
         </button>
       </div>

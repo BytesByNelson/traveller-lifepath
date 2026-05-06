@@ -139,6 +139,12 @@ export type WizardState = {
    */
   rollMode?: 'app' | 'manual';
   /**
+   * Pool of 2D rolls awaiting assignment to characteristics. Used in app mode on the
+   * Characteristics step: the player rolls all six into the pool, then picks which
+   * value goes to which characteristic. Cleared once every value has been assigned.
+   */
+  unassignedRolls?: number[];
+  /**
    * Set by gain_psion_eligibility effects (pre-career events / unusual events).
    * Once true, the Psion career becomes selectable even if psionics weren't
    * enabled at creation, and the in-play PSI test button on the sheet activates.
