@@ -4,8 +4,12 @@ import { CHAR_NAMES, characteristicDM, SPECIES } from '../data';
 import {
   assignFromPool,
   assignPoolInOrder,
+  POINT_BUY_BUDGET,
+  POINT_BUY_MAX,
+  POINT_BUY_MIN,
   rollCharacteristicsPool,
   setCharacteristic,
+  setPointBuyCharacteristic,
   unassignToPool,
 } from '../engine';
 import { roll2d } from '../engine';
@@ -114,6 +118,12 @@ export function CharacteristicsStep({
 
   const isAssigned = (code: CharCode): boolean => character.baseCharacteristics[code] !== DEFAULT_BASE;
   const anyAssigned = CHAR_CODES.some(isAssigned);
+  const totalPoints = CHAR_CODES.reduce((sum, c) => sum + character.baseCharacteristics[c], 0);
+  const pointBuyBalanced = totalPoints === POINT_BUY_BUDGET;
+  const setPB = (code: CharCode, value: number) => {
+    if (value < POINT_BUY_MIN || value > POINT_BUY_MAX) return;
+    onChange(setPointBuyCharacteristic(character, code, value));
+  };
 
   return (
     <section className="space-y-4">
@@ -121,9 +131,36 @@ export function CharacteristicsStep({
       <p className="text-sm text-gray-600">
         {rollMode === 'app'
           ? 'Roll 2D × 6 into a pool, then assign each value to the characteristic you want it on. Species modifiers apply automatically.'
+          : rollMode === 'point_buy'
+          ? `Distribute ${POINT_BUY_BUDGET} points across the six characteristics, each between ${POINT_BUY_MIN} and ${POINT_BUY_MAX}. Species modifiers apply automatically.`
           : 'Enter your 2D roll for each characteristic. Species modifiers apply automatically.'}
-        {psionicsEnabled ? ' PSI is rolled separately — 2D at creation.' : ''}
+        {psionicsEnabled
+          ? rollMode === 'point_buy'
+            ? ' PSI is rolled separately (2D) — point-buy applies only to the six core stats.'
+            : ' PSI is rolled separately — 2D at creation.'
+          : ''}
       </p>
+
+      {rollMode === 'point_buy' ? (
+        <div
+          className={`rounded border p-2 text-sm flex items-center justify-between ${
+            pointBuyBalanced
+              ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
+              : 'border-amber-200 bg-amber-50 text-amber-900'
+          }`}
+        >
+          <span>
+            Spent <strong>{totalPoints}</strong> / {POINT_BUY_BUDGET} points
+          </span>
+          <span className="text-xs">
+            {pointBuyBalanced
+              ? '✓ Balanced — ready to continue'
+              : totalPoints > POINT_BUY_BUDGET
+              ? `Over budget by ${totalPoints - POINT_BUY_BUDGET}`
+              : `${POINT_BUY_BUDGET - totalPoints} left to spend`}
+          </span>
+        </div>
+      ) : null}
 
       {rollMode === 'app' ? (
         <div className="flex flex-wrap items-center gap-2">
@@ -184,7 +221,10 @@ export function CharacteristicsStep({
             const base = character.baseCharacteristics[code];
             const final = character.characteristics[code];
             const mod = (mods as Record<CharCode, number | undefined>)[code] ?? 0;
-            const assigned = isAssigned(code);
+            // Point-buy stats are always "assigned" — every value is a deliberate allocation,
+            // including the default 7. For roll modes, "assigned" means the player has set a
+            // non-default value via roll or manual entry.
+            const assigned = rollMode === 'point_buy' ? true : isAssigned(code);
             return (
               <tr key={code} className="border-t border-gray-200">
                 <td className="py-1.5 font-medium">{code}</td>
@@ -204,7 +244,42 @@ export function CharacteristicsStep({
                   )}
                 </td>
                 <td className="text-right">
-                  {rollMode === 'manual' ? (
+                  {rollMode === 'point_buy' ? (
+                    <div className="flex items-center justify-end gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setPB(code, base - 1)}
+                        disabled={base <= POINT_BUY_MIN}
+                        className="text-xs w-6 h-6 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed"
+                        aria-label={`Decrease ${CHAR_NAMES[code]}`}
+                        title={`Decrease ${CHAR_NAMES[code]}`}
+                      >
+                        −
+                      </button>
+                      <input
+                        type="number"
+                        min={POINT_BUY_MIN}
+                        max={POINT_BUY_MAX}
+                        value={base}
+                        onChange={(e) => {
+                          const n = Number(e.target.value);
+                          if (Number.isInteger(n)) setPB(code, n);
+                        }}
+                        className="w-12 px-1 border border-gray-300 rounded text-xs text-right"
+                        aria-label={`${CHAR_NAMES[code]} value`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setPB(code, base + 1)}
+                        disabled={base >= POINT_BUY_MAX}
+                        className="text-xs w-6 h-6 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed"
+                        aria-label={`Increase ${CHAR_NAMES[code]}`}
+                        title={`Increase ${CHAR_NAMES[code]}`}
+                      >
+                        +
+                      </button>
+                    </div>
+                  ) : rollMode === 'manual' ? (
                     <>
                       <input
                         type="number"
@@ -346,10 +421,15 @@ export function CharacteristicsStep({
         </button>
         <button
           onClick={onNext}
-          disabled={rollMode === 'app' && pool.length > 0}
+          disabled={
+            (rollMode === 'app' && pool.length > 0) ||
+            (rollMode === 'point_buy' && !pointBuyBalanced)
+          }
           title={
             rollMode === 'app' && pool.length > 0
               ? `Assign the remaining ${pool.length} pool ${pool.length === 1 ? 'value' : 'values'} before continuing`
+              : rollMode === 'point_buy' && !pointBuyBalanced
+              ? `Spend exactly ${POINT_BUY_BUDGET} points before continuing (currently ${totalPoints})`
               : ''
           }
           className="px-4 py-2 rounded bg-indigo-600 text-white text-sm hover:bg-indigo-700 disabled:opacity-50"

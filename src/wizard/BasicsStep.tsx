@@ -59,12 +59,30 @@ export function BasicsStep({
       </label>
 
       <fieldset className="rounded border border-gray-300 p-3">
-        <legend className="px-2 text-sm font-medium text-gray-700">Dice rolls</legend>
+        <legend className="px-2 text-sm font-medium text-gray-700">Characteristics method</legend>
         <p className="text-xs text-gray-600 mb-2">
-          How would you like to handle dice rolls during creation?
+          How would you like to set your six starting characteristics?
         </p>
-        <div className="grid grid-cols-2 gap-2">
-          {(['app', 'manual'] as const).map((mode) => {
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          {(
+            [
+              {
+                mode: 'app',
+                title: 'Roll — site does it',
+                desc: 'The website rolls 2D × 6 into a pool; you assign each value to the stat you want. Every later check (career rolls, events, etc.) is also rolled by the site.',
+              },
+              {
+                mode: 'manual',
+                title: "Roll — I'll throw the dice",
+                desc: 'You roll physical dice and enter results yourself. The website tracks DMs, targets, and outcomes for every step.',
+              },
+              {
+                mode: 'point_buy',
+                title: 'Point-buy',
+                desc: 'Spend 42 points across the six stats (each 2–12). No randomness on stats. Later career rolls are still rolled by the site.',
+              },
+            ] as const
+          ).map(({ mode, title, desc }) => {
             const selected = character.wizardState?.rollMode === mode;
             return (
               <button
@@ -83,14 +101,8 @@ export function BasicsStep({
                   selected ? 'border-indigo-600 bg-indigo-50' : 'border-gray-300 hover:bg-gray-50'
                 }`}
               >
-                <div className="font-medium text-sm">
-                  {mode === 'app' ? 'Roll for me' : 'I\'ll roll my own dice'}
-                </div>
-                <div className="text-xs text-gray-600 mt-0.5">
-                  {mode === 'app'
-                    ? 'The website rolls 2D for every check and table; you just review the result.'
-                    : 'You roll physical dice and enter the result. The website still tracks DMs and outcomes.'}
-                </div>
+                <div className="font-medium text-sm">{title}</div>
+                <div className="text-xs text-gray-600 mt-0.5">{desc}</div>
               </button>
             );
           })}

@@ -133,11 +133,15 @@ export type WizardState = {
    */
   preCareerEducationTaken?: boolean;
   /**
-   * Roll mode chosen on the Basics step. 'app' lets the wizard roll dice; 'manual' has
-   * the player enter their own results. Persisted so subsequent rolls during the wizard
-   * default to the same control. Undefined means "ask before showing controls."
+   * How characteristics + downstream rolls are handled. Chosen on the Basics step.
+   * - 'app': the wizard rolls 2D for stats and every later check.
+   * - 'manual': the player rolls their own dice and enters the results.
+   * - 'point_buy': the player distributes a 42-point budget across the six stats
+   *    (2..12 each); downstream rolls in the wizard still happen via 'app'.
+   * Persisted so subsequent rolls during the wizard default to the same control.
+   * Undefined means "ask before showing controls."
    */
-  rollMode?: 'app' | 'manual';
+  rollMode?: 'app' | 'manual' | 'point_buy';
   /**
    * Pool of 2D rolls awaiting assignment to characteristics. Used in app mode on the
    * Characteristics step: the player rolls all six into the pool, then picks which

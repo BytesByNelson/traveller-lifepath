@@ -28,11 +28,19 @@ type Props = {
  * Renders the engine's current prompt and provides controls to resolve it.
  * Calls `onUpdate` with the new EngineState after each resolution.
  */
+/** Map the player's stat-method choice onto HybridDice's mode prop. Point-buy users
+ *  pick stats by hand but still get app-rolled dice for downstream career rolls — the
+ *  Basics step copy promises this — so 'point_buy' falls through to 'app'. */
+const diceModeFor = (rollMode: 'app' | 'manual' | 'point_buy' | undefined): 'app' | 'manual' | 'both' => {
+  if (rollMode === 'app' || rollMode === 'point_buy') return 'app';
+  if (rollMode === 'manual') return 'manual';
+  return 'both';
+};
+
 export function PendingPrompt({ state, onUpdate }: Props) {
   const p = state.prompt;
   if (!p) return null;
-  const mode = state.character.wizardState?.rollMode ?? 'both';
-  const diceMode = mode === 'app' || mode === 'manual' ? mode : 'both';
+  const diceMode = diceModeFor(state.character.wizardState?.rollMode);
 
   switch (p.kind) {
     case 'check':
@@ -398,7 +406,7 @@ function WagerPrompt({ state, onUpdate }: Props) {
         title="Roll the check"
         target={p.effect.check.target}
         dms={[]}
-        mode={state.character.wizardState?.rollMode ?? 'both'}
+        mode={diceModeFor(state.character.wizardState?.rollMode)}
         onResult={(natural, total) =>
           onUpdate(resolveWager(state, Number(wagered) || 0, natural, total))
         }

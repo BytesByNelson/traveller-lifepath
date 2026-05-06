@@ -124,6 +124,33 @@ export const rollAllCharacteristics = (
   };
 };
 
+/** Point-buy budget — total of 6 × 7 (the average 2D roll) = 42, distributed among the
+ *  six characteristics with each in [2, 12]. Used by the point-buy stat method. */
+export const POINT_BUY_BUDGET = 42;
+export const POINT_BUY_MIN = 2;
+export const POINT_BUY_MAX = 12;
+
+/** Set a characteristic's base value via the point-buy method. Replaces (rather than
+ *  appends) the per-char log entry so adjusting the slider many times doesn't bloat the
+ *  audit trail; one final entry per stat lands in the log. */
+export const setPointBuyCharacteristic = (c: Character, code: CharCode, base: number): Character => {
+  const newBase = { ...c.baseCharacteristics, [code]: base };
+  const log = c.rollLog.filter((e) => e.context !== `Set ${code} (point-buy)`);
+  log.push({
+    id: crypto.randomUUID(),
+    ts: Date.now(),
+    context: `Set ${code} (point-buy)`,
+    result: base,
+    source: 'manual',
+  });
+  return {
+    ...c,
+    baseCharacteristics: newBase,
+    characteristics: applySpeciesModifiers(newBase, c.species),
+    rollLog: log,
+  };
+};
+
 /** Manually enter a single rolled characteristic value (with species modifier still applied). */
 export const setCharacteristic = (c: Character, code: CharCode, base: number): Character => {
   const newBase = { ...c.baseCharacteristics, [code]: base };
