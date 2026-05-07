@@ -209,45 +209,60 @@ function layoutRows(entries: SkillEntry[]): Row[] {
   const rows: Row[] = [];
   for (const slot of PRINTED_SLOTS) {
     const matches = byParent.get(slot.name) ?? [];
+    if (slot.slotsForSpecs === 0) {
+      // Non-spec skill (Admin, Advocate, …): render exactly one row.
+      const entry = matches[0];
+      rows.push({
+        label: slot.name,
+        ...(entry ? { level: entry.level } : {}),
+        spec: false,
+        parentName: slot.name,
+      });
+      continue;
+    }
+
+    // Spec'd skill (Animals, Art, Pilot, …): match the Mongoose 2026 sheet's
+    // count — exactly slotsForSpecs rows total, NOT slotsForSpecs + 1. Fill
+    // priority: each filled spec first (sorted), then the parent entry if it
+    // exists at level 0+, then blank rows. Each row's label is the parent
+    // skill name with optional (spec) in parens — Mongoose doesn't indent the
+    // spec lines, just rewrites the parent name on each slot.
     const parentEntry = matches.find((m) => !m.spec);
-    rows.push({
-      label: slot.name,
-      ...(parentEntry ? { level: parentEntry.level } : {}),
-      spec: false,
-      parentName: slot.name,
-    });
-    if (slot.slotsForSpecs > 0) {
-      const specs = matches.filter((m) => m.spec);
-      for (let i = 0; i < slot.slotsForSpecs; i++) {
-        const spec = specs[i];
-        rows.push({
-          label: spec ? `(${spec.spec})` : '',
-          ...(spec ? { level: spec.level } : {}),
-          spec: true,
-          parentName: slot.name,
-          ...(spec?.spec ? { specName: spec.spec } : {}),
-        });
-      }
+    const specEntries = matches
+      .filter((m) => m.spec)
+      .sort((a, b) => (a.spec ?? '').localeCompare(b.spec ?? ''));
+    const filledSlots: { entry: SkillEntry }[] = [];
+    for (const e of specEntries) filledSlots.push({ entry: e });
+    if (parentEntry && filledSlots.length < slot.slotsForSpecs) {
+      filledSlots.push({ entry: parentEntry });
+    }
+    const overflow = filledSlots.splice(slot.slotsForSpecs);
+    for (let i = 0; i < slot.slotsForSpecs; i++) {
+      const filled = filledSlots[i];
+      const e = filled?.entry;
+      rows.push({
+        label: e ? slot.name + (e.spec ? ` (${e.spec})` : '') : slot.name,
+        ...(e ? { level: e.level } : {}),
+        spec: false,
+        parentName: slot.name,
+        ...(e?.spec ? { specName: e.spec } : {}),
+      });
+    }
+    // Overflow specs (more than slotsForSpecs filled): tack on extra labelled
+    // rows so nothing silently disappears from the printout.
+    for (const o of overflow) {
+      rows.push({
+        label: slot.name + (o.entry.spec ? ` (${o.entry.spec})` : ''),
+        level: o.entry.level,
+        spec: false,
+        parentName: slot.name,
+        ...(o.entry.spec ? { specName: o.entry.spec } : {}),
+      });
     }
   }
 
-  // Overflow specs (beyond the printed slots) and unknown skills append at the bottom.
-  const overflowSpecs: { name: SkillName; entry: SkillEntry }[] = [];
-  for (const [name, list] of byParent) {
-    const slot = PRINTED_SLOTS.find((p) => p.name === name);
-    if (!slot) continue;
-    const overflow = list.filter((e) => e.spec).slice(slot.slotsForSpecs);
-    overflow.forEach((entry) => overflowSpecs.push({ name, entry }));
-  }
-  for (const o of overflowSpecs) {
-    rows.push({
-      label: `${o.name} (${o.entry.spec})`,
-      level: o.entry.level,
-      spec: false,
-      parentName: o.name,
-      ...(o.entry.spec ? { specName: o.entry.spec } : {}),
-    });
-  }
+  // Unknown skill names (shouldn't happen via the engine but possible from
+  // imported JSON or future schema) append at the bottom.
   for (const e of extras) {
     rows.push({
       label: e.name + (e.spec ? ` (${e.spec})` : ''),
