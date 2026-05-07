@@ -14,6 +14,7 @@
  * they like.
  */
 import type { CareerId, CharCode, Character, SkillName, SkillRef, SpeciesId } from '../types';
+import { generateNpcName } from './npc-names';
 import { BACKGROUND_SKILLS, CAREERS, CAREER_LIST, SKILLS } from '../data';
 import { ARMOUR, AUGMENTS, GEAR, WEAPONS } from '../data/equipment';
 import { roll2d, type Rng } from './dice';
@@ -73,7 +74,9 @@ export type NpcOptions = {
 export function generateNpc(opts: NpcOptions, rng: Rng = Math.random): Character {
   const id = opts.id ?? crypto.randomUUID();
   const species = opts.species ?? 'human';
-  const name = (opts.name ?? '').trim() || 'Unnamed Traveller';
+  // Generate a species-appropriate name when blank — "Unnamed Traveller" is
+  // a placeholder for an in-progress wizard, not a finished NPC.
+  const name = (opts.name ?? '').trim() || generateNpcName(species, rng);
   const targetTerms = Math.max(1, Math.min(7, opts.terms ?? 3));
 
   let c = newCharacter(id, name, species);
@@ -91,7 +94,12 @@ export function generateNpc(opts: NpcOptions, rng: Rng = Math.random): Character
   c = autoPickBackgroundSkills(c, rng);
 
   // Career loop. Stops at targetTerms or on death/Drifter chain.
-  const careerSequence = pickCareerSequence(c, targetTerms, opts.careerHint, rng);
+  // When the player asked for psionics, default the first term to Psion so
+  // that toggling "Include PSI" actually steers the NPC down the psionic
+  // path (instead of just rolling a PSI score and ignoring it). The user
+  // can still override via opts.careerHint.
+  const firstCareerHint = opts.careerHint ?? (opts.psionics ? 'psion' : undefined);
+  const careerSequence = pickCareerSequence(c, targetTerms, firstCareerHint, !!opts.psionics, rng);
   for (const wantedCareer of careerSequence) {
     if (c.deceased) break;
     if (c.careerHistory.length >= targetTerms) break;
@@ -229,11 +237,22 @@ function autoPickBackgroundSkills(c: Character, rng: Rng): Character {
 
 /** Build a target sequence of careers to attempt. Falls back to Drifter when
  *  qualification fails repeatedly; runOneTerm handles actual qualification. */
-function pickCareerSequence(c: Character, terms: number, hint: CareerId | undefined, rng: Rng): CareerId[] {
+function pickCareerSequence(
+  c: Character,
+  terms: number,
+  hint: CareerId | undefined,
+  includePsion: boolean,
+  rng: Rng,
+): CareerId[] {
   const out: CareerId[] = [];
-  const allCareers = CAREER_LIST.filter(
-    (career) => career.id !== 'prisoner' && career.id !== 'psion',
-  );
+  // Prisoner is reserved for forced routing via in-game events. Psion is
+  // gated behind the "Include PSI" option — randomly handing out psionic
+  // careers to mundane NPCs would be lore-breaking.
+  const allCareers = CAREER_LIST.filter((career) => {
+    if (career.id === 'prisoner') return false;
+    if (career.id === 'psion' && !includePsion) return false;
+    return true;
+  });
   for (let i = 0; i < terms; i++) {
     if (i === 0 && hint) {
       out.push(hint);

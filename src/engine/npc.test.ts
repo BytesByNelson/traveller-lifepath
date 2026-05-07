@@ -33,8 +33,32 @@ describe('generateNpc — autopilot', () => {
     expect(a.characteristics).not.toEqual(b.characteristics);
   });
 
-  it('defaults to "Unnamed Traveller" when no name given', () => {
-    const c = generateNpc({ terms: 1 }, scriptedRng(Array(500).fill(dieValue(4))));
-    expect(c.name).toBe('Unnamed Traveller');
+  it('generates a species-appropriate name when none given', () => {
+    const c = generateNpc({ terms: 1 }, scriptedRng(Array(2000).fill(dieValue(4))));
+    expect(c.name).not.toBe('');
+    expect(c.name).not.toBe('Unnamed Traveller');
+    // Two-token "First Last" structure.
+    expect(c.name.split(' ').length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('respects an explicit name', () => {
+    const c = generateNpc({ name: 'Captain Nelson', terms: 1 }, scriptedRng(Array(500).fill(dieValue(4))));
+    expect(c.name).toBe('Captain Nelson');
+  });
+
+  it('seeds the first career with Psion when psionics is enabled', () => {
+    const c = generateNpc(
+      { name: 'Psi NPC', terms: 1, psionics: true },
+      scriptedRng(Array(2000).fill(dieValue(4))),
+    );
+    // First attempted career was Psion. (Whether the NPC qualified is roll-
+    // dependent — failed qualification falls back to Drifter per RAW.)
+    const firstTerm = c.careerHistory[0];
+    expect(firstTerm).toBeDefined();
+    // PSI characteristic was rolled.
+    expect(c.psi).toBeDefined();
+    // Either ended up in psion (qualified) or drifter (failed); never a
+    // random other career when psionics was the explicit pick.
+    expect(['psion', 'drifter']).toContain(firstTerm!.career);
   });
 });

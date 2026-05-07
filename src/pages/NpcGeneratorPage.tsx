@@ -42,7 +42,7 @@ export function NpcGeneratorPage() {
   }, [generated, navigate]);
 
   return (
-    <main className="max-w-[1400px] mx-auto p-3 md:p-4 space-y-4">
+    <main className="max-w-[1600px] mx-auto p-3 md:p-4 space-y-4">
       <header className="flex items-baseline justify-between flex-wrap gap-2">
         <div className="flex items-baseline gap-3 flex-wrap">
           <button onClick={() => navigate('/')} className="text-sm text-gray-500 hover:underline">
