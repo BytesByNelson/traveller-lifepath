@@ -60,20 +60,26 @@ try {
 
   // Basics step
   await page.fill('input[placeholder*="Traveller"]', 'Smoke Test');
-  // Roll mode picker (required gate; Continue is disabled until one is selected).
-  await page.click('button:has-text("Roll for me")');
-  record('Roll-mode picker selectable', true);
+  // Characteristics-method picker (required gate; Continue is disabled until one is selected).
+  // Three options: "Roll — site does it" / "Roll — I'll throw the dice" / "Point-buy".
+  await page.click('button:has-text("Roll — site does it")');
+  record('Characteristics-method picker selectable (app)', true);
   await page.click('button:has-text("Continue → Characteristics")');
   record('Basics → Characteristics', await page.locator('h2:has-text("Characteristics")').isVisible());
 
-  // ─── 3. Roll all characteristics ───
-  await page.click('button:has-text("Roll all")');
-  // After Roll all in app mode, every char row should show a "Re-roll" button.
-  const rerollCount = await page.locator('button:has-text("Re-roll")').count();
-  record('Re-roll buttons appear after Roll all (app mode)', rerollCount >= 6, `${rerollCount} buttons`);
+  // ─── 3. Roll the pool, drain it in order ───
+  // App mode rolls 2D × 6 into a pool; "Take in order" assigns them top-to-bottom.
+  await page.click('button:has-text("Roll pool")');
+  await page.click('button:has-text("Take in order")');
+  // Per-stat Re-roll buttons (text exactly "Re-roll") appear after assignments
+  // land. Note there's also a "Re-roll pool" header button with overlapping
+  // text — match by exact accessible name to skip it.
+  const perStatReroll = page.getByRole('button', { name: 'Re-roll', exact: true });
+  const rerollCount = await perStatReroll.count();
+  record('Re-roll buttons appear after pool drain (app mode)', rerollCount >= 6, `${rerollCount} buttons`);
 
-  // Click one re-roll and verify the rollLog gains a "(re-roll)" entry.
-  await page.locator('button:has-text("Re-roll")').first().click();
+  // Click one per-stat re-roll and verify the rollLog gains a "(re-roll)" entry.
+  await perStatReroll.first().click();
   await page.waitForTimeout(150);
   const hasRerollLog = await page.locator('aside ol li').filter({ hasText: '(re-roll)' }).count();
   record('Re-roll appends a (re-roll) entry to the roll log', hasRerollLog > 0, `${hasRerollLog} entries`);
@@ -109,7 +115,11 @@ try {
     await page.locator('h2:has-text("pick a career")').isVisible());
 
   // ─── 6. Pick Agent → Law Enforcement ───
+  // Career picker now shows a details panel after a career is clicked. Selecting
+  // the career card focuses it; the "Continue → {career} assignments" button
+  // inside the details panel routes to the assignment picker.
   await page.click('button:has-text("Agent")');
+  await page.click('button:has-text("Continue → Agent assignments")');
   record('Pick Agent', await page.locator('h2:has-text("Agent — pick assignment")').isVisible());
 
   await page.click('button:has-text("Law Enforcement")');
@@ -118,29 +128,30 @@ try {
   const onBasic = await page.locator('h2:has-text("Agent — basic training")').isVisible();
   record('Picked Law Enforcement (qualify or basic training)', onQualify || onBasic);
 
-  // If on qualification, click "Roll for me"
+  // If on qualification, roll and click through the qualification-result page.
   if (onQualify) {
     await page.click('button:has-text("Roll for me")');
-    // Wait for one of: success → basic training, fail → pick career
-    await page.waitForFunction(() => {
-      const h2 = document.querySelector('h2');
-      return h2 && (h2.textContent?.includes('basic training') || h2.textContent?.includes('pick a career'));
-    }, { timeout: 5_000 });
-    const passed = await page.locator('h2:has-text("basic training")').isVisible();
-    record('Qualification roll resolved', true, passed ? 'qualified' : 'failed (retry path)');
-    if (!passed) {
-      // Retry by re-picking Agent
-      await page.click('button:has-text("Agent")');
-      await page.click('button:has-text("Law Enforcement")');
-      // Try again
-      while (!(await page.locator('h2:has-text("basic training")').isVisible())) {
-        await page.click('button:has-text("Roll for me")');
-        await page.waitForTimeout(200);
-        if (await page.locator('h2:has-text("pick a career")').isVisible()) {
-          await page.click('button:has-text("Agent")');
-          await page.click('button:has-text("Law Enforcement")');
-        }
-      }
+    // After rolling, the wizard pauses on a qualify_outcome screen showing
+    // PASS/FAIL details. Wait for it to appear, then advance via the relevant
+    // continuation button.
+    await page.waitForSelector('h2:has-text("qualification result")', { timeout: 5_000 });
+    const passContinue = page.locator('button:has-text("Continue → Basic training")');
+    const drifterFallback = page.locator('button:has-text("Take Drifter")');
+    if (await passContinue.isVisible()) {
+      await passContinue.click();
+      record('Qualification roll resolved', true, 'qualified');
+    } else if (await drifterFallback.isVisible()) {
+      // Failed qualification: per RAW p13 the only options are Drifter or Draft.
+      // Take Drifter and pick the first assignment so the rest of the smoke
+      // (roll log, undo, export) still runs against a valid character.
+      await drifterFallback.click();
+      // The drifter assignment picker shows a list of buttons in a <ul>; click
+      // the first one to commit to an assignment.
+      await page.waitForSelector('h2:has-text("Drifter — pick assignment")', { timeout: 3_000 });
+      await page.locator('section ul button').first().click();
+      record('Qualification roll resolved', true, 'failed → Drifter fallback');
+    } else {
+      record('Qualification roll resolved', false, 'unexpected qualify_outcome state');
     }
   }
 
@@ -462,7 +473,10 @@ try {
   await page.emulateMedia({ media: 'screen' });
   await page.goto(URL, { waitUntil: 'networkidle' });
   {
-    const footer = page.locator('footer');
+    // The CharacterListPage has its own inline <footer> for the localStorage hint;
+    // the site-wide Footer component is the one with the fan-tool disclaimer +
+    // Buy-Me-a-Coffee link. Target by accessible name to skip the inline one.
+    const footer = page.getByRole('contentinfo').filter({ hasText: 'Unofficial fan tool' });
     const footerVisible = await footer.isVisible();
     record('Footer renders site-wide', footerVisible);
     if (footerVisible) {
