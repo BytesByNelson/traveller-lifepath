@@ -49,6 +49,15 @@ select:focus-visible {
 .dark .bg-gray-50 { background-color: #1c1917; } /* stone-900 — page-level subtle */
 .dark .bg-gray-100 { background-color: #292524; }
 
+/* Tailwind opacity-modifier classes (e.g. bg-gray-50/50) compile to a separate
+   selector (.bg-gray-50\/50) so the bare overrides above don't catch them.
+   Without these, the skill-details panel and any other "subtle wash" surfaces
+   render as a half-transparent LIGHT gray over the dark page bg in Imperial,
+   killing readability of the small text on top. */
+.dark .bg-gray-50\/50 { background-color: #292524; } /* stone-800 — match other cards */
+.dark .bg-amber-50\/30 { background-color: rgba(120, 53, 15, 0.30); }
+.dark .bg-red-50\/40 { background-color: rgba(153, 27, 27, 0.45); }
+
 /* Borders */
 .dark .border-gray-200 { border-color: #44403c; } /* stone-700 */
 .dark .border-gray-300 { border-color: #57534e; } /* stone-600 */
