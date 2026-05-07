@@ -4,9 +4,11 @@ import {
   assignFromPool,
   assignPoolInOrder,
   dieValue,
+  isCharacteristicAssigned,
   newCharacter,
   rollCharacteristicsPool,
   scriptedRng,
+  setCharacteristic,
   unassignToPool,
 } from './index';
 import { CHAR_CODES } from '../types';
@@ -118,6 +120,96 @@ describe('Characteristic pool assignment', () => {
     // Old log entries from the first pool are gone — only the fresh six "Roll pool" entries.
     expect(second.rollLog.filter((e) => e.context === 'Roll pool')).toHaveLength(6);
     expect(second.rollLog.filter((e) => e.context === 'Roll STR')).toHaveLength(0);
+  });
+
+  it('a value of 7 (== default) can be assigned and counts as assigned afterwards', () => {
+    // Reddit bug: assigning a rolled 7 made the slot read as "unassigned" because
+    // the UI used "value !== 7" as the assignment sentinel — so the player saw
+    // their 7 vanish from the pool and the stat row went back to the picker.
+    const c = newCharacter('id', 'Pooled', 'human');
+    const rolled = rollCharacteristicsPool(
+      c,
+      // Pool of six 7s — every 2D below produces 7.
+      scriptedRng([
+        dieValue(3), dieValue(4),
+        dieValue(3), dieValue(4),
+        dieValue(3), dieValue(4),
+        dieValue(3), dieValue(4),
+        dieValue(3), dieValue(4),
+        dieValue(3), dieValue(4),
+      ]),
+    );
+    expect(rolled.wizardState?.unassignedRolls).toEqual([7, 7, 7, 7, 7, 7]);
+    expect(rolled.wizardState?.assignedChars ?? []).toEqual([]);
+
+    const assigned = assignFromPool(rolled, 'STR', 7);
+    // 7 left the pool, STR base is 7, AND assignedChars now lists STR.
+    expect(assigned.wizardState?.unassignedRolls).toEqual([7, 7, 7, 7, 7]);
+    expect(assigned.baseCharacteristics.STR).toBe(7);
+    expect(assigned.wizardState?.assignedChars).toContain('STR');
+  });
+
+  it('unassignToPool works on a stat assigned the value 7', () => {
+    const c = newCharacter('id', 'Pooled', 'human');
+    const rolled = rollCharacteristicsPool(c, scriptedRng(Array(12).fill(dieValue(3) + dieValue(4)) as never)); // hack – value 7
+    // simpler: roll a known mix
+    const rolled2 = rollCharacteristicsPool(
+      c,
+      scriptedRng([
+        dieValue(3), dieValue(4), // 7
+        dieValue(5), dieValue(6), // 11
+        dieValue(2), dieValue(2), // 4
+        dieValue(6), dieValue(6), // 12
+        dieValue(1), dieValue(1), // 2
+        dieValue(4), dieValue(5), // 9
+      ]),
+    );
+    void rolled;
+    const assigned = assignFromPool(rolled2, 'STR', 7);
+    expect(assigned.baseCharacteristics.STR).toBe(7);
+    expect(assigned.wizardState?.assignedChars).toContain('STR');
+
+    const undone = unassignToPool(assigned, 'STR');
+    // 7 went back to the pool; STR no longer in assignedChars.
+    expect(undone.wizardState?.unassignedRolls).toContain(7);
+    expect(undone.wizardState?.assignedChars).not.toContain('STR');
+    expect(undone.baseCharacteristics.STR).toBe(7); // base reset to default 7
+  });
+
+  it('assignPoolInOrder skips characteristics that are already assigned (even with value 7)', () => {
+    // Player rolls a pool, manually picks 7 for STR, then clicks "Take in order".
+    // The 7 they assigned should NOT be re-assigned by the auto-assigner (it
+    // should keep STR=7 and drain the rest into DEX, END, INT, EDU, SOC).
+    const c = newCharacter('id', 'Pooled', 'human');
+    const rolled = rollCharacteristicsPool(
+      c,
+      scriptedRng([
+        dieValue(3), dieValue(4), // 7  ← will be assigned to STR by the player
+        dieValue(5), dieValue(6), // 11
+        dieValue(2), dieValue(2), // 4
+        dieValue(6), dieValue(6), // 12
+        dieValue(1), dieValue(1), // 2
+        dieValue(4), dieValue(5), // 9
+      ]),
+    );
+    const partial = assignFromPool(rolled, 'STR', 7);
+    const drained = assignPoolInOrder(partial);
+    expect(drained.baseCharacteristics).toEqual({ STR: 7, DEX: 11, END: 4, INT: 12, EDU: 2, SOC: 9 });
+    // STR was respected (not overwritten with 11).
+    expect(drained.wizardState?.assignedChars).toEqual(
+      expect.arrayContaining(['STR', 'DEX', 'END', 'INT', 'EDU', 'SOC']),
+    );
+  });
+
+  it('manual setCharacteristic with value 7 marks the stat as assigned', () => {
+    // Manual ("I'll throw the dice") mode: same Reddit bug — typing 7 into a
+    // stat field made the stat row read as unassigned because the UI used the
+    // bare value to detect assignment.
+    const c = newCharacter('id', 'Manual', 'human');
+    expect(isCharacteristicAssigned(c, 'STR')).toBe(false);
+    const updated = setCharacteristic(c, 'STR', 7);
+    expect(updated.baseCharacteristics.STR).toBe(7);
+    expect(isCharacteristicAssigned(updated, 'STR')).toBe(true);
   });
 
   it('rollCharacteristicsPool also rolls PSI separately when psionics is enabled', () => {

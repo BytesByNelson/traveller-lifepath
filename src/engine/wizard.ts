@@ -130,6 +130,32 @@ export const POINT_BUY_BUDGET = 42;
 export const POINT_BUY_MIN = 2;
 export const POINT_BUY_MAX = 12;
 
+/** Mark a characteristic as explicitly assigned by the player (idempotent). */
+const markAssigned = (c: Character, code: CharCode): Character['wizardState'] => {
+  const ws = c.wizardState ?? { step: 'characteristics' as const };
+  const cur = ws.assignedChars ?? [];
+  if (cur.includes(code)) return ws;
+  return { ...ws, assignedChars: [...cur, code] };
+};
+
+/** Remove a characteristic from the assigned list. */
+const markUnassigned = (c: Character, code: CharCode): Character['wizardState'] => {
+  const ws = c.wizardState ?? { step: 'characteristics' as const };
+  const cur = ws.assignedChars ?? [];
+  if (!cur.includes(code)) return ws;
+  return { ...ws, assignedChars: cur.filter((x) => x !== code) };
+};
+
+/** Whether the player has explicitly set this characteristic during the wizard.
+ *  Falls back to "value differs from default 7" for characters created before
+ *  the assignedChars tracking landed (otherwise their already-set 7s would
+ *  read as unassigned on revisit). */
+export const isCharacteristicAssigned = (c: Character, code: CharCode): boolean => {
+  const list = c.wizardState?.assignedChars;
+  if (list) return list.includes(code);
+  return c.baseCharacteristics[code] !== DEFAULT_CHAR_VALUES[code];
+};
+
 /** Set a characteristic's base value via the point-buy method. Replaces (rather than
  *  appends) the per-char log entry so adjusting the slider many times doesn't bloat the
  *  audit trail; one final entry per stat lands in the log. */
@@ -168,6 +194,7 @@ export const setCharacteristic = (c: Character, code: CharCode, base: number): C
         source: 'manual',
       },
     ],
+    wizardState: markAssigned(c, code),
   };
 };
 
@@ -225,7 +252,12 @@ export const rollCharacteristicsPool = (c: Character, rng: Rng): Character => {
     characteristics: applySpeciesModifiers(base, c.species),
     ...(psi !== undefined ? { psi } : {}),
     rollLog: cleanLog,
-    wizardState: { ...(c.wizardState ?? { step: 'characteristics' }), unassignedRolls: pool },
+    // Reset the assigned-chars list too — a fresh pool means nothing is assigned yet.
+    wizardState: {
+      ...(c.wizardState ?? { step: 'characteristics' }),
+      unassignedRolls: pool,
+      assignedChars: [],
+    },
   };
 };
 
@@ -243,12 +275,13 @@ export const assignFromPool = (c: Character, code: CharCode, value: number): Cha
   const log = [...c.rollLog];
   const logIdx = log.findIndex((e) => e.context === 'Roll pool' && e.result === value);
   if (logIdx >= 0) log[logIdx] = { ...log[logIdx]!, context: `Roll ${code}` };
+  const ws = markAssigned(c, code);
   return {
     ...c,
     baseCharacteristics: newBase,
     characteristics: applySpeciesModifiers(newBase, c.species),
     rollLog: log,
-    wizardState: { ...(c.wizardState ?? { step: 'characteristics' }), unassignedRolls: newPool },
+    wizardState: { ...(ws ?? { step: 'characteristics' }), unassignedRolls: newPool },
   };
 };
 
@@ -258,31 +291,32 @@ export const assignFromPool = (c: Character, code: CharCode, value: number): Cha
  * from assignFromPool: the matching "Roll {code}" entry returns to "Roll pool".
  */
 export const unassignToPool = (c: Character, code: CharCode): Character => {
+  if (!isCharacteristicAssigned(c, code)) return c;
   const value = c.baseCharacteristics[code];
-  if (value === DEFAULT_CHAR_VALUES[code]) return c;
   const pool = [...(c.wizardState?.unassignedRolls ?? []), value];
   const newBase = { ...c.baseCharacteristics, [code]: DEFAULT_CHAR_VALUES[code] };
   const log = [...c.rollLog];
   const logIdx = log.findIndex((e) => e.context === `Roll ${code}` && e.result === value);
   if (logIdx >= 0) log[logIdx] = { ...log[logIdx]!, context: 'Roll pool' };
+  const ws = markUnassigned(c, code);
   return {
     ...c,
     baseCharacteristics: newBase,
     characteristics: applySpeciesModifiers(newBase, c.species),
     rollLog: log,
-    wizardState: { ...(c.wizardState ?? { step: 'characteristics' }), unassignedRolls: pool },
+    wizardState: { ...(ws ?? { step: 'characteristics' }), unassignedRolls: pool },
   };
 };
 
 /** Drain the entire pool into characteristics in CHAR_CODES order — the classic
  *  "take them as rolled" assignment. Skips any characteristic that's already been
- *  assigned (non-default base value). */
+ *  assigned. */
 export const assignPoolInOrder = (c: Character): Character => {
   let next = c;
   for (const code of CHAR_CODES) {
     const pool = next.wizardState?.unassignedRolls ?? [];
     if (pool.length === 0) break;
-    if (next.baseCharacteristics[code] !== DEFAULT_CHAR_VALUES[code]) continue;
+    if (isCharacteristicAssigned(next, code)) continue;
     next = assignFromPool(next, code, pool[0]!);
   }
   return next;

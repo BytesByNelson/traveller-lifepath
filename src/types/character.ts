@@ -149,6 +149,15 @@ export type WizardState = {
    */
   unassignedRolls?: number[];
   /**
+   * Which characteristics the player has explicitly set during the wizard's
+   * Characteristics step. Tracked separately from baseCharacteristics because
+   * "assigned a 7" looks identical to "default 7" otherwise — and a 2D roll
+   * legitimately produces 7, so we can't use the value as a sentinel for
+   * "unassigned". Engine helpers (assignFromPool, setCharacteristic, etc.)
+   * maintain this list.
+   */
+  assignedChars?: CharCode[];
+  /**
    * Set by gain_psion_eligibility effects (pre-career events / unusual events).
    * Once true, the Psion career becomes selectable even if psionics weren't
    * enabled at creation, and the in-play PSI test button on the sheet activates.

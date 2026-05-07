@@ -4,6 +4,7 @@ import { CHAR_NAMES, characteristicDM, SPECIES } from '../data';
 import {
   assignFromPool,
   assignPoolInOrder,
+  isCharacteristicAssigned,
   POINT_BUY_BUDGET,
   POINT_BUY_MAX,
   POINT_BUY_MIN,
@@ -13,8 +14,6 @@ import {
   unassignToPool,
 } from '../engine';
 import { roll2d } from '../engine';
-
-const DEFAULT_BASE = 7;
 
 export function CharacteristicsStep({
   character,
@@ -116,7 +115,7 @@ export function CharacteristicsStep({
     });
   };
 
-  const isAssigned = (code: CharCode): boolean => character.baseCharacteristics[code] !== DEFAULT_BASE;
+  const isAssigned = (code: CharCode): boolean => isCharacteristicAssigned(character, code);
   const anyAssigned = CHAR_CODES.some(isAssigned);
   const totalPoints = CHAR_CODES.reduce((sum, c) => sum + character.baseCharacteristics[c], 0);
   const pointBuyBalanced = totalPoints === POINT_BUY_BUDGET;
