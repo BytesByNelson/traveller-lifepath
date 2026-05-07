@@ -68,10 +68,13 @@ select:focus-visible {
 .dark .text-gray-500 { color: #a8a29e; } /* stone-400 — secondary, AA on dark */
 .dark .text-gray-400 { color: #a8a29e; } /* stone-400 — was stone-500 (3.7:1, failed AA) */
 
-/* Accent washes — keep the hue but drop the saturation against dark bg */
-.dark .bg-red-50 { background-color: rgba(127, 29, 29, 0.25); }
-.dark .bg-amber-50 { background-color: rgba(120, 53, 15, 0.30); }
-.dark .bg-emerald-50 { background-color: rgba(6, 78, 59, 0.30); }
+/* Accent washes — keep the hue but drop the saturation against dark bg.
+   Opacity tuned so selected states (background-skill chips, In Memoriam card,
+   etc.) read as clearly "highlighted" against the stone-900 page bg, while
+   white inherited text still hits AA contrast on top. */
+.dark .bg-red-50 { background-color: rgba(153, 27, 27, 0.55); }
+.dark .bg-amber-50 { background-color: rgba(120, 53, 15, 0.40); }
+.dark .bg-emerald-50 { background-color: rgba(6, 78, 59, 0.40); }
 
 .dark .border-red-200 { border-color: rgba(220, 38, 38, 0.45); }
 .dark .border-amber-200 { border-color: rgba(217, 119, 6, 0.45); }
