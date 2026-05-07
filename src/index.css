@@ -137,9 +137,19 @@ select:focus-visible {
 }
 
 /* ─────────── Print: one sheet page per printed page ─────────── */
+/* The @page rule sits at the stylesheet root (not just inside @media print) so
+   Chrome and Safari both consume the page-size hint when populating the print
+   preview's orientation toggle. Using explicit dimensions (11in × 8.5in) wins
+   over `letter landscape` in browsers that ignore the orientation keyword —
+   width > height tells the engine landscape unambiguously. */
+@page {
+  size: 11in 8.5in;
+  margin: 0.4in;
+}
+
 @media print {
   @page {
-    size: letter landscape;
+    size: 11in 8.5in;
     margin: 0.4in;
   }
   body {

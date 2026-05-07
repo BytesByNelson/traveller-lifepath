@@ -53,6 +53,7 @@ export function SheetPage() {
           <button
             onClick={() => window.print()}
             className="text-sm px-3 py-1 rounded bg-gray-700 text-white hover:bg-gray-800"
+            title="Designed for landscape Letter (11×8.5in). If your print dialog defaults to portrait, switch to landscape — the layout will be cramped otherwise."
           >
             Print
           </button>
