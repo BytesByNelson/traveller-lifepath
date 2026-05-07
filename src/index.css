@@ -205,6 +205,38 @@ select:focus-visible {
     break-inside: avoid;
     border: none !important;
     box-shadow: none !important;
+    /* Drop article padding in print — the @page margin (0.4in) is the only
+       inset we want. Saves ~24px of vertical real estate which lets the
+       skills list + everything else fit inside one printed page without
+       Chrome having to auto-scale (and emit a trailing partial page). */
+    padding: 0 !important;
+  }
+  /* SheetPanel inner content padding adds up across ~10 panels per page. Trim
+     it for print so each panel is denser without losing its visual frame.
+     Use individual padding-* props (NOT the shorthand) so panels with the
+     `pl-9` extra left padding — which makes room for the rotated badge
+     stripe (AUGMENTS, ARMOUR, etc.) — keep their badge clearance. */
+  .sheet-page section > .p-3 {
+    padding-top: 0.4rem !important;
+    padding-right: 0.4rem !important;
+    padding-bottom: 0.4rem !important;
+  }
+  .sheet-page section > .p-3:not(.pl-9) {
+    padding-left: 0.4rem !important;
+  }
+  .sheet-page section > header { padding: 0.25rem 0.5rem !important; }
+  /* HistoryNotes textarea reserves min-h-[6rem] for the editable cursor;
+     in print the textarea is non-interactive so that floor is wasted space. */
+  .sheet-page textarea,
+  .sheet-page [class*="min-h-"] {
+    min-height: 0 !important;
+  }
+  /* Equipment / weapons / etc. tables ship with reserved blank rows so the
+     print sheet has fillable space; collapse to the actual data height in
+     print since the user printing this presumably has the data they want. */
+  .sheet-page tbody tr:empty,
+  .sheet-page tr.placeholder-row {
+    display: none !important;
   }
   .sheet-page + .sheet-page {
     break-before: page;
