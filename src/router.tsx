@@ -114,7 +114,10 @@ const RootLayout = () => (
     <div id="main-content">
       <Outlet />
     </div>
-    <div className="fixed top-3 right-3 z-50 print:hidden">
+    {/* Bottom-right keeps the switcher discoverable but out of every page's
+        header zone — the SheetPage action bar (Undo / Roll log / Export) sits
+        in the top-right and collided with a top-anchored switcher. */}
+    <div className="fixed bottom-3 right-3 z-50 print:hidden">
       <ThemeSwitcher />
     </div>
   </>
