@@ -77,8 +77,13 @@ select:focus-visible {
 .dark .border-amber-200 { border-color: rgba(217, 119, 6, 0.45); }
 .dark .border-emerald-200 { border-color: rgba(5, 150, 105, 0.45); }
 
-/* Status text — bump brightness so it pops on dark surfaces */
+/* Status / accent text — brighten on dark surfaces. Light-theme uses red-700 as
+   the primary, but #b91c1c on stone-900 is only 2.7:1 (fails WCAG AA), so we
+   shift the accent palette upward by 3-4 shades inside .dark. amber-700 (used
+   by the Buy-Me-a-Coffee link in the footer) had the same problem. */
+.dark .text-red-700 { color: #fca5a5; } /* red-300 — 11.1:1 on stone-900 */
 .dark .text-red-600 { color: #f87171; } /* red-400 */
+.dark .text-amber-700 { color: #fbbf24; } /* amber-400 — 11.5:1 on stone-900 */
 .dark .text-amber-900 { color: #fcd34d; } /* amber-300 */
 .dark .text-emerald-900 { color: #6ee7b7; } /* emerald-300 */
 .dark .text-emerald-700 { color: #34d399; } /* emerald-400 */

@@ -65,7 +65,7 @@ export function CharacterListPage() {
         </ul>
       )}
 
-      <footer className="mt-8 text-xs text-gray-400">
+      <footer className="mt-8 text-xs text-gray-500">
         Saved in your browser's localStorage. Export JSON to back up or move between devices.
       </footer>
     </main>
