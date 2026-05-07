@@ -115,7 +115,7 @@ for (const theme of ['lbb', 'imperial']) {
   }
 
   // Wizard route — needs the seeded character ID.
-  for (const route of ['/create/a11y-test', '/sheet/a11y-test']) {
+  for (const route of ['/create/a11y-test', '/sheet/a11y-test', '/npc']) {
     const url = `${BASE}/#${route}`;
     await page.goto(url, { waitUntil: 'networkidle' });
     await page.waitForTimeout(500); // small settle for lazy-loaded chunks

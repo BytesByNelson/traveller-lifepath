@@ -17,8 +17,15 @@ export function CharacterListPage() {
     <main className="max-w-3xl mx-auto p-6">
       <header className="flex items-baseline justify-between flex-wrap gap-2">
         <h1 className="text-2xl font-semibold">Travellers</h1>
-        <div className="flex items-start gap-2">
+        <div className="flex items-start gap-2 flex-wrap">
           <ImportButton onImported={(c) => navigate(`/sheet/${c.id}`)} />
+          <button
+            onClick={() => navigate('/npc')}
+            className="text-sm px-3 py-1.5 rounded border border-gray-300 hover:bg-gray-50"
+            title="Auto-generate an NPC for the GM table"
+          >
+            Generate NPC
+          </button>
           <button
             onClick={create}
             className="text-sm px-3 py-1.5 rounded bg-red-700 text-white font-medium hover:bg-red-800"

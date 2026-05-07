@@ -51,6 +51,9 @@ const WizardPage = lazyChunk(() =>
 const SheetPage = lazyChunk(() =>
   import('./pages/SheetPage').then((m) => ({ default: m.SheetPage })),
 );
+const NpcGeneratorPage = lazyChunk(() =>
+  import('./pages/NpcGeneratorPage').then((m) => ({ default: m.NpcGeneratorPage })),
+);
 
 const Loading = () => (
   <main className="p-6 text-sm text-gray-500">Loading…</main>
@@ -131,6 +134,7 @@ export const router = createHashRouter([
       { path: '/', element: wrap(<CharacterListPage />) },
       { path: '/create/:id', element: wrap(<WizardPage />) },
       { path: '/sheet/:id', element: wrap(<SheetPage />) },
+      { path: '/npc', element: wrap(<NpcGeneratorPage />) },
     ],
   },
 ]);
