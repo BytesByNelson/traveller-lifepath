@@ -21,7 +21,11 @@ export function PersonalDataFile({ character, onChange }: Props) {
 
   return (
     <SheetPanel title="Personal Data File">
-      <dl className="text-sm space-y-0.5">
+      {/* Compact layout — matches the official Mongoose 2026 sheet's
+          density: Age + Species share a row (saves ~0.4in of vertical
+          space vs one-row-per-field). Tighter leading than the rest of
+          the sheet because these are short single-line values. */}
+      <dl className="text-sm leading-snug">
         <Row label="Name">
           {editable ? (
             <EditableText
@@ -46,25 +50,27 @@ export function PersonalDataFile({ character, onChange }: Props) {
             <span className="text-gray-400">—</span>
           )}
         </Row>
-        <Row label="Age">{getAge(character)}</Row>
-        <Row label="Species" className="capitalize">
-          {editable ? (
-            <select
-              value={character.species}
-              onChange={(e) => set('species', e.target.value as SpeciesId)}
-              className="text-sm bg-transparent border-0 hover:bg-yellow-50 capitalize"
-              aria-label="Species"
-            >
-              {(Object.keys(SPECIES) as SpeciesId[]).map((id) => (
-                <option key={id} value={id}>
-                  {SPECIES[id].name}
-                </option>
-              ))}
-            </select>
-          ) : (
-            character.species
-          )}
-        </Row>
+        <div className="grid grid-cols-2 gap-x-3">
+          <Row label="Age" compact>{getAge(character)}</Row>
+          <Row label="Species" compact className="capitalize">
+            {editable ? (
+              <select
+                value={character.species}
+                onChange={(e) => set('species', e.target.value as SpeciesId)}
+                className="text-sm bg-transparent border-0 hover:bg-yellow-50 capitalize"
+                aria-label="Species"
+              >
+                {(Object.keys(SPECIES) as SpeciesId[]).map((id) => (
+                  <option key={id} value={id}>
+                    {SPECIES[id].name}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              character.species
+            )}
+          </Row>
+        </div>
         <Row label="Homeworld">
           {editable ? (
             <EditableText
@@ -83,11 +89,25 @@ export function PersonalDataFile({ character, onChange }: Props) {
   );
 }
 
-function Row({ label, children, className = '' }: { label: string; children: React.ReactNode; className?: string }) {
+function Row({
+  label,
+  children,
+  className = '',
+  compact = false,
+}: {
+  label: string;
+  children: React.ReactNode;
+  className?: string;
+  compact?: boolean;
+}) {
+  // The compact variant uses a narrower label column for paired fields
+  // (Age | Species) so two Rows fit comfortably side-by-side without
+  // the labels eating the value space.
+  const cols = compact ? 'grid-cols-[3rem_1fr]' : 'grid-cols-[5.5rem_1fr]';
   return (
-    <div className="grid grid-cols-[6.5rem_1fr] items-baseline gap-2">
+    <div className={`grid ${cols} items-baseline gap-2`}>
       <dt className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">{label}</dt>
-      <dd className={`border-b border-dotted border-gray-300 leading-relaxed ${className}`}>{children}</dd>
+      <dd className={`border-b border-dotted border-gray-300 ${className}`}>{children}</dd>
     </div>
   );
 }
