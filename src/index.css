@@ -2,6 +2,28 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─────────── Accessibility: focus indicators ─────────── */
+/* Every keyboard-focused element gets a visible 2px outline. The browser default
+   (a thin blue line) is too subtle on dark backgrounds and easy to miss in light
+   mode too. `focus-visible` (vs plain `focus`) means mouse clicks on buttons
+   don't show the outline — only keyboard navigation triggers it, which is the
+   standard pattern users expect. */
+*:focus-visible {
+  outline: 2px solid #b91c1c; /* red-700 — the LBB primary */
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+.dark *:focus-visible {
+  outline-color: #fca5a5; /* red-300 — brighter for dark surfaces */
+}
+/* Inputs already have their own border; offsetting the outline outward keeps
+   it from overlapping the text content. */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline-offset: 1px;
+}
+
 /* ─────────── Theme: LBB (light, default) ─────────── */
 /* The body inherits Tailwind's defaults — white bg, near-black text. The wizard
    and sheet pages are mostly bg-white / text-gray-* so they pick this up by
@@ -31,13 +53,20 @@
 .dark .border-gray-200 { border-color: #44403c; } /* stone-700 */
 .dark .border-gray-300 { border-color: #57534e; } /* stone-600 */
 
-/* Text */
+/* Text — chosen so contrast against the dark surface (#1c1917) hits WCAG AA
+   for normal text (4.5:1) wherever the class is used for actual content.
+   Reference contrast ratios on stone-900:
+     stone-100 #f5f5f4 → 16.8:1
+     stone-200 #e7e5e4 → 14.6:1
+     stone-300 #d6d3d1 → 12.0:1
+     stone-400 #a8a29e →  6.6:1
+     stone-500 #78716c →  3.7:1  (fails AA — not used for body text below) */
 .dark .text-gray-900 { color: #f5f5f4; } /* stone-100 */
 .dark .text-gray-800 { color: #e7e5e4; } /* stone-200 */
 .dark .text-gray-700 { color: #d6d3d1; } /* stone-300 */
-.dark .text-gray-600 { color: #a8a29e; } /* stone-400 */
-.dark .text-gray-500 { color: #a8a29e; } /* stone-400 — slightly brighter for readability on dark */
-.dark .text-gray-400 { color: #78716c; } /* stone-500 */
+.dark .text-gray-600 { color: #d6d3d1; } /* stone-300 — body / hint text, AA on dark */
+.dark .text-gray-500 { color: #a8a29e; } /* stone-400 — secondary, AA on dark */
+.dark .text-gray-400 { color: #a8a29e; } /* stone-400 — was stone-500 (3.7:1, failed AA) */
 
 /* Accent washes — keep the hue but drop the saturation against dark bg */
 .dark .bg-red-50 { background-color: rgba(127, 29, 29, 0.25); }
@@ -53,6 +82,34 @@
 .dark .text-amber-900 { color: #fcd34d; } /* amber-300 */
 .dark .text-emerald-900 { color: #6ee7b7; } /* emerald-300 */
 .dark .text-emerald-700 { color: #34d399; } /* emerald-400 */
+
+/* ─────────── Hover/focus state variants (dark mode) ─────────── */
+/* Tailwind compiles `hover:bg-gray-50` to `.hover\:bg-gray-50:hover`, which the
+   plain `.dark .bg-gray-50` rule above does NOT match. Without these explicit
+   variant overrides, hovering any "subtle highlight" button in dark mode would
+   flash a light-gray background — making white-on-light-gray text invisible. */
+
+.dark .hover\:bg-gray-50:hover { background-color: #44403c; } /* stone-700 */
+.dark .hover\:bg-gray-100:hover { background-color: #44403c; }
+.dark .hover\:bg-white:hover { background-color: #44403c; }
+.dark .hover\:bg-yellow-50:hover { background-color: rgba(120, 53, 15, 0.40); }
+.dark .hover\:bg-amber-100:hover { background-color: rgba(120, 53, 15, 0.55); }
+.dark .hover\:bg-emerald-100:hover { background-color: rgba(6, 78, 59, 0.55); }
+.dark .hover\:bg-red-50:hover { background-color: rgba(127, 29, 29, 0.40); }
+
+/* Text-color hovers — the light theme darkens on hover; in dark mode we need to
+   brighten instead, otherwise hovered links/buttons fade out. */
+.dark .hover\:text-gray-700:hover { color: #f5f5f4; } /* stone-100 */
+.dark .hover\:text-gray-900:hover { color: #fafaf9; } /* stone-50 */
+.dark .hover\:text-red-600:hover { color: #fca5a5; } /* red-300 */
+.dark .hover\:text-red-900:hover { color: #fca5a5; }
+.dark .hover\:text-amber-900:hover { color: #fcd34d; } /* amber-300 */
+
+/* Focus rings — Tailwind's default focus indicator is browser-default outline,
+   which is hard to see on dark surfaces. Bump to a visible red ring on every
+   focusable element so keyboard users can tell where they are. (See ADA pass.) */
+.dark .focus\:ring-red-700:focus,
+.dark .focus\:ring-red-700:focus-visible { box-shadow: 0 0 0 2px #fca5a5; }
 
 /* ─────────── Mobile / narrow widths ─────────── */
 @media (max-width: 480px) {

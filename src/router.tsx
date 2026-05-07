@@ -101,8 +101,19 @@ const RouteErrorBoundary = () => {
  */
 const RootLayout = () => (
   <>
+    {/* Skip-to-content link: hidden until focused via keyboard (Tab on page load
+        targets it first), then jumps screen-reader / keyboard users straight
+        past the route-tracking and theme chrome to the page content. */}
+    <a
+      href="#main-content"
+      className="sr-only focus:not-sr-only fixed top-2 left-2 z-[60] bg-red-700 text-white px-3 py-1 rounded text-sm font-medium shadow-md"
+    >
+      Skip to main content
+    </a>
     <AnalyticsRouteTracker />
-    <Outlet />
+    <div id="main-content">
+      <Outlet />
+    </div>
     <div className="fixed top-3 right-3 z-50 print:hidden">
       <ThemeSwitcher />
     </div>
