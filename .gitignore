@@ -23,3 +23,6 @@ yarn-error.log*
 # Rulebook PDFs (referenced by Claude Code locally; not for public repo)
 rules/
 *.pdf
+
+# Claude Code session metadata (not part of the project)
+.claude/
