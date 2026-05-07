@@ -1,21 +1,9 @@
 import { useTheme, type Theme } from '../theme/useTheme';
 
 const OPTIONS: { value: Theme; label: string; title: string }[] = [
-  {
-    value: 'lbb',
-    label: 'LBB',
-    title: 'Classic Little Black Books — light cream + deep red',
-  },
-  {
-    value: 'imperial',
-    label: 'Imperial',
-    title: 'Dark — Imperial computer terminal',
-  },
-  {
-    value: 'system',
-    label: 'System',
-    title: 'Match your OS preference',
-  },
+  { value: 'lbb', label: 'LBB', title: 'Light theme' },
+  { value: 'imperial', label: 'Imperial', title: 'Dark theme' },
+  { value: 'system', label: 'System', title: 'Follow OS theme' },
 ];
 
 export function ThemeSwitcher() {
