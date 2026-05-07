@@ -210,6 +210,20 @@ select:focus-visible {
     break-before: page;
     page-break-before: always; /* legacy fallback */
   }
+  /* Explicit "no break after" on the last sheet-page and its ancestors so the
+     document genuinely ends there. Without this, Chrome occasionally emits a
+     trailing blank page when grid/flex wrappers leave whitespace at the end
+     of the printed flow. */
+  .sheet-page:last-of-type {
+    break-after: avoid !important;
+    page-break-after: avoid !important;
+  }
+  main,
+  article,
+  body {
+    break-after: avoid !important;
+    page-break-after: avoid !important;
+  }
   /* Hex tile clip-path can render unevenly; fall back to a square box for print */
   [data-testid^='char-'] {
     clip-path: none !important;

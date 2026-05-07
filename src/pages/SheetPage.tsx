@@ -51,7 +51,23 @@ export function SheetPage() {
             Edit creation
           </button>
           <button
-            onClick={() => window.print()}
+            onClick={() => {
+              // Set the document title temporarily so the browser's
+              // "Save as PDF" suggests a useful filename (e.g.
+              // "Traveller Lifepath - Nelson.pdf" instead of the
+              // app's default title). Restore the original on the
+              // afterprint event so the tab title isn't disturbed
+              // after the dialog closes.
+              const original = document.title;
+              const safe = (character.name || 'Unnamed').replace(/[\\/:*?"<>|]/g, '-').trim();
+              document.title = `Traveller Lifepath - ${safe || 'Unnamed'}`;
+              const restore = () => {
+                document.title = original;
+                window.removeEventListener('afterprint', restore);
+              };
+              window.addEventListener('afterprint', restore);
+              window.print();
+            }}
             className="text-sm px-3 py-1 rounded bg-gray-700 text-white hover:bg-gray-800"
             title="Designed for landscape Letter (11×8.5in). If your print dialog defaults to portrait, switch to landscape — the layout will be cramped otherwise."
           >
