@@ -494,7 +494,10 @@ export const startRankBonus = (
   const row = list.find((r) => r.rank === rankIndex);
   if (!row?.bonus) return blankEngineState(c);
   let state = blankEngineState(c);
-  state = pushContext(state, `${career.name} rank ${rankIndex} (${row.title ?? ''})`.trim());
+  // Some careers (Drifter, Prisoner) have rankless ranks — row.title is empty.
+  // Don't render the parens in that case, otherwise the log shows "Drifter rank 1 ()".
+  const rankLabel = row.title ? `${career.name} rank ${rankIndex} (${row.title})` : `${career.name} rank ${rankIndex}`;
+  state = pushContext(state, rankLabel);
   state = enqueue(state, [row.bonus]);
   state = drain(state, rng);
   return state;
