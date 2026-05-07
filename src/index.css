@@ -145,13 +145,14 @@ select:focus-visible {
   body {
     background: white !important;
     color: black !important;
-    font-size: 9.5pt;
+    /* 9pt (was 9.5pt) — the half-point trim is enough to land the skills list
+       inside one printed page when combined with the leading-none rule below. */
+    font-size: 9pt;
   }
   /* The app shell wraps everything in `flex min-h-screen flex-col` so the
      site-wide footer pins to the bottom of the viewport. In print mode that
-     min-height: 100vh combines with the page-break-after on sheet-page-1 to
-     emit a trailing blank page. Reset the wrappers to plain block layout for
-     print so the document ends right after sheet-page-2. */
+     min-height: 100vh would combine with page-break rules to emit a trailing
+     blank page. Reset the wrappers to plain block layout. */
   html,
   body,
   #root,
@@ -160,6 +161,13 @@ select:focus-visible {
     min-height: 0 !important;
     height: auto !important;
     display: block !important;
+  }
+  /* Skills list ships ~87 rows in 3 columns. At default leading the third
+     column edges past landscape Letter; collapsing to leading-none recovers
+     enough vertical space without making rows touch (the inline glyphs all
+     fit comfortably inside one line at 9pt). */
+  .sheet-page ul {
+    line-height: 1 !important;
   }
   /* Strip interactive chrome */
   button,
@@ -177,15 +185,20 @@ select:focus-visible {
     color: #444 !important;
     font-style: normal !important;
   }
-  /* Each sheet page on its own physical page */
+  /* Each sheet page on its own physical page. Modern syntax: break-before on
+     every sheet-page after the first puts a page boundary between them, which
+     Chrome handles more reliably than the legacy page-break-after: always +
+     :last-child override (that combo emitted a trailing blank page when the
+     first sheet-page overflowed by even one row). */
   .sheet-page {
     page-break-inside: avoid;
-    page-break-after: always;
+    break-inside: avoid;
     border: none !important;
     box-shadow: none !important;
   }
-  .sheet-page:last-child {
-    page-break-after: auto;
+  .sheet-page + .sheet-page {
+    break-before: page;
+    page-break-before: always; /* legacy fallback */
   }
   /* Hex tile clip-path can render unevenly; fall back to a square box for print */
   [data-testid^='char-'] {
