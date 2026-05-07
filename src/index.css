@@ -147,6 +147,20 @@ select:focus-visible {
     color: black !important;
     font-size: 9.5pt;
   }
+  /* The app shell wraps everything in `flex min-h-screen flex-col` so the
+     site-wide footer pins to the bottom of the viewport. In print mode that
+     min-height: 100vh combines with the page-break-after on sheet-page-1 to
+     emit a trailing blank page. Reset the wrappers to plain block layout for
+     print so the document ends right after sheet-page-2. */
+  html,
+  body,
+  #root,
+  #root > div,
+  #root > div > div {
+    min-height: 0 !important;
+    height: auto !important;
+    display: block !important;
+  }
   /* Strip interactive chrome */
   button,
   select,

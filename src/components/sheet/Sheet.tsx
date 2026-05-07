@@ -42,7 +42,6 @@ function SheetPage1({ character, onChange }: Props) {
         <PersonalDataFile character={character} {...(onChange ? { onChange } : {})} />
         <CharacteristicsRow character={character} {...(onChange ? { onChange } : {})} />
         <SkillsList character={character} {...(onChange ? { onChange } : {})} />
-        <TrainingBox character={character} {...(onChange ? { onChange } : {})} />
       </div>
     </article>
   );
@@ -61,8 +60,12 @@ function SheetPage2({ character, onChange }: Props) {
         <CareersHistory character={character} />
         <HistoryNotes character={character} {...(onChange ? { onChange } : {})} />
       </div>
-      <div>
+      <div className="space-y-3">
         <ConnectionsBoxes character={character} {...(onChange ? { onChange } : {})} />
+        {/* Training panel was on page 1's right column; moved here so the
+            skills list can use the full vertical space of page 1 without
+            overflowing into a 3rd printed page. */}
+        <TrainingBox character={character} {...(onChange ? { onChange } : {})} />
       </div>
     </article>
   );
