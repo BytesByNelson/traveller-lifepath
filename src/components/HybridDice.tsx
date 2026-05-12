@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { roll2d, type Rng } from '../engine';
 import { gmOverride } from '../gm/gmOverride';
+import { useGmOverride } from '../gm/useGmOverride';
 
 type Props = {
   /** Title of the roll, shown above the buttons. */
@@ -22,6 +23,11 @@ type Props = {
 export function HybridDice({ title, target, dms, dice = '2D', onResult, rng, mode = 'both' }: Props) {
   const [manualInput, setManualInput] = useState('');
   const [error, setError] = useState<string | null>(null);
+  // GM-queue visibility: subscribe so we can show the next forced value on
+  // the dice card itself. Without this, GMs have to glance bottom-right to
+  // verify what's queued — easy to forget.
+  const { enabled: gmEnabled, queue: gmQueue } = useGmOverride();
+  const nextForced = gmEnabled && gmQueue.length > 0 ? gmQueue[0] : undefined;
 
   const dmTotal = dms.reduce((acc, d) => acc + d.value, 0);
   const max = dice === '2D' ? 12 : 6;
@@ -79,6 +85,19 @@ export function HybridDice({ title, target, dms, dice = '2D', onResult, rng, mod
       ) : (
         <div className="text-xs text-gray-500 mb-3">No modifiers.</div>
       )}
+      {nextForced !== undefined && mode !== 'manual' ? (
+        <div
+          className="mb-2 inline-flex items-center gap-1.5 rounded border border-amber-300 bg-amber-50 px-2 py-0.5 text-xs text-amber-900"
+          role="status"
+          aria-live="polite"
+        >
+          <span className="font-semibold uppercase tracking-wider">GM</span>
+          <span>
+            next roll forced to <strong>{nextForced}</strong>
+            {gmQueue.length > 1 ? ` (then ${gmQueue.slice(1).join(', ')})` : ''}
+          </span>
+        </div>
+      ) : null}
       <div className="flex gap-2 items-center flex-wrap">
         {mode !== 'manual' ? (
           <button

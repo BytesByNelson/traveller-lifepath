@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { deleteCharacter, useCharacterList, upsertCharacter } from '../store/characters';
 import { newCharacter } from '../engine';
 import { ImportButton } from '../components/ImportButton';
+import type { Character } from '../types';
 
 export function CharacterListPage() {
   const characters = useCharacterList();
@@ -11,6 +12,21 @@ export function CharacterListPage() {
     const id = crypto.randomUUID();
     upsertCharacter(newCharacter(id, '', 'human'));
     navigate(`/create/${id}`);
+  };
+
+  const duplicate = (c: Character) => {
+    // Clone-with-new-id. Keep every field — career history, sheet edits,
+    // notes — so GMs making variants of an NPC don't have to redo work.
+    // Append " (copy)" to disambiguate in the library; users can rename
+    // in the sheet immediately after.
+    const newId = crypto.randomUUID();
+    const cloned: Character = {
+      ...c,
+      id: newId,
+      name: c.name ? `${c.name} (copy)` : '(copy)',
+    };
+    upsertCharacter(cloned);
+    navigate(`/sheet/${newId}`);
   };
 
   return (
@@ -55,18 +71,28 @@ export function CharacterListPage() {
                   {c.species} • {c.careerHistory.length} terms • Step: {c.wizardState?.step ?? 'done'}
                 </div>
               </button>
-              <button
-                onClick={() => {
-                  if (confirm(`Delete ${c.name || '(unnamed)'}? This cannot be undone.`)) {
-                    deleteCharacter(c.id);
-                  }
-                }}
-                className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 text-xs text-gray-400 hover:text-red-600 px-1"
-                aria-label={`Delete ${c.name || 'character'}`}
-                title="Delete"
-              >
-                ×
-              </button>
+              <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 focus-within:opacity-100 flex items-center gap-1">
+                <button
+                  onClick={() => duplicate(c)}
+                  className="text-xs text-gray-500 hover:text-red-700 px-1"
+                  aria-label={`Duplicate ${c.name || 'character'}`}
+                  title="Duplicate — clones with a new id, keeps every field"
+                >
+                  ⧉
+                </button>
+                <button
+                  onClick={() => {
+                    if (confirm(`Delete ${c.name || '(unnamed)'}? This cannot be undone.`)) {
+                      deleteCharacter(c.id);
+                    }
+                  }}
+                  className="text-xs text-gray-400 hover:text-red-600 px-1"
+                  aria-label={`Delete ${c.name || 'character'}`}
+                  title="Delete"
+                >
+                  ×
+                </button>
+              </div>
             </li>
           ))}
         </ul>
