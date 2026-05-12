@@ -2,6 +2,7 @@ import type { CharCode } from './characteristics';
 import type { SkillEntry, SkillRef } from './skills';
 import type { CareerId } from './careers';
 import type { SpeciesId } from './species';
+import type { SocietyId } from './society';
 import type { BenefitKind, ConnectionType, Effect } from './effects';
 
 export type Connection = {
@@ -201,6 +202,10 @@ export type Character = {
   name: string;
   species: SpeciesId;
   homeworld?: string;
+  /** Setting-level affiliation. Optional for backward compat — older
+   *  characters default to 'third_imperium' in the wizard's UI. Used to
+   *  filter the career picker to society-appropriate options. */
+  society?: SocietyId;
 
   /** Live values — modified by aging, injury, benefits, etc. */
   characteristics: Record<CharCode, number>;

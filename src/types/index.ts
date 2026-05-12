@@ -4,6 +4,7 @@ export * from './skills';
 export * from './effects';
 export * from './careers';
 export * from './species';
+export * from './society';
 export * from './character';
 export * from './equipment';
 export * from './psionics';

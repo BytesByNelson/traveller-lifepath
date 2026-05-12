@@ -1,4 +1,5 @@
 import type { CharCheck, Effect } from './effects';
+import type { SocietyId } from './society';
 
 export type CareerId =
   | 'agent'
@@ -135,4 +136,9 @@ export type Career = {
     /** Cannot voluntarily enter (Prisoner). */
     enforcedEntry?: boolean;
   };
+  /** Societies in which this career can be entered. Omit (or empty array)
+   *  to mean "available everywhere" — the case for core careers like Agent,
+   *  Army, Citizen, etc. Used by the career picker to filter to society-
+   *  appropriate options once Character.society is set. */
+  availableInSocieties?: SocietyId[];
 };

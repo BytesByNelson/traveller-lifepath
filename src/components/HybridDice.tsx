@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { roll2d, type Rng } from '../engine';
+import { gmOverride } from '../gm/gmOverride';
 
 type Props = {
   /** Title of the roll, shown above the buttons. */
@@ -27,6 +28,15 @@ export function HybridDice({ title, target, dms, dice = '2D', onResult, rng, mod
   const min = dice === '2D' ? 2 : 1;
 
   const rollForMe = () => {
+    // GM override: when GM mode is on and the queue is non-empty, the next
+    // "Roll for me" consumes a forced value instead of calling the RNG.
+    // Reported as source: 'rng' so it lands in the log identically to a real
+    // dice roll — GMs using this for testing want behaviour to match prod.
+    const forced = gmOverride.consume();
+    if (forced !== undefined) {
+      onResult(forced, forced + dmTotal, 'rng');
+      return;
+    }
     const natural = dice === '2D' ? roll2d(rng).total : 1 + Math.floor((rng ?? Math.random)() * 6);
     onResult(natural, natural + dmTotal, 'rng');
   };

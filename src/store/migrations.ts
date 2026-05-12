@@ -16,6 +16,12 @@ const validSpecies: SpeciesId[] = [
   'bwap', 'luriani', 'jonkeereen',
 ];
 
+const validSocieties: import('../types').SocietyId[] = [
+  'third_imperium', 'solomani_confederation', 'aslan_hierate',
+  'hiver_federation', 'zhodani_consulate', 'two_thousand_worlds',
+  'vargr_extents', 'other',
+];
+
 /**
  * Walk a parsed-JSON value through any registered migrations and return a Character
  * (or an error reason). v1 is a structural validation pass — it doesn't transform
@@ -41,6 +47,11 @@ function validateV1(json: Record<string, unknown>): MigrationResult {
   if (typeof json.name !== 'string') errors.push('name must be a string');
   if (typeof json.species !== 'string' || !validSpecies.includes(json.species as SpeciesId)) {
     errors.push(`species must be one of ${validSpecies.join(', ')}`);
+  }
+  // Optional — pre-society characters won't have it, the wizard fills in
+  // 'third_imperium' as the default at read time.
+  if (json.society !== undefined && (typeof json.society !== 'string' || !validSocieties.includes(json.society as import('../types').SocietyId))) {
+    errors.push(`society must be one of ${validSocieties.join(', ')} (or omitted)`);
   }
 
   if (!isObject(json.characteristics)) {

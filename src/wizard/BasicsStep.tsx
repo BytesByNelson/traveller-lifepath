@@ -1,5 +1,6 @@
-import type { Character, SpeciesId } from '../types';
+import type { Character, SocietyId, SpeciesId } from '../types';
 import { SPECIES } from '../data';
+import { SOCIETIES } from '../data/societies';
 
 export function BasicsStep({
   character,
@@ -65,6 +66,25 @@ export function BasicsStep({
           );
         })()}
       </fieldset>
+
+      <label className="block">
+        <span className="text-sm font-medium text-gray-700">Society (campaign setting)</span>
+        <select
+          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+          value={character.society ?? 'third_imperium'}
+          onChange={(e) => onChange({ ...character, society: e.target.value as SocietyId })}
+          aria-label="Society"
+        >
+          {(Object.keys(SOCIETIES) as SocietyId[]).map((id) => (
+            <option key={id} value={id}>
+              {SOCIETIES[id].name}
+            </option>
+          ))}
+        </select>
+        <span className="block mt-1 text-xs text-gray-600 italic">
+          {SOCIETIES[character.society ?? 'third_imperium'].description}
+        </span>
+      </label>
 
       <label className="block">
         <span className="text-sm font-medium text-gray-700">Homeworld (optional)</span>

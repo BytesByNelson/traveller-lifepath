@@ -263,8 +263,14 @@ export function CareerTermStep({
     const justLeftCareerId = character.careerHistory.at(-1)?.career;
     const isLockedJustLeft = (id: CareerId) =>
       id !== 'drifter' && !!justLeftCareerId && id === justLeftCareerId;
+    const society = character.society ?? 'third_imperium';
     const visibleCareers = Object.values(CAREERS).filter((c) => {
       if (c.id === 'psion') return psionicsAvailable;
+      // Society gate: careers with availableInSocieties listed are restricted
+      // to those societies; absent / empty array means "everywhere".
+      if (c.availableInSocieties && c.availableInSocieties.length > 0) {
+        return c.availableInSocieties.includes(society);
+      }
       return true;
     });
     const focused = focusedCareer ? CAREERS[focusedCareer] : undefined;
