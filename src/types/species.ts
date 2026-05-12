@@ -1,6 +1,15 @@
 import type { CharCode } from './characteristics';
 
-export type SpeciesId = 'human' | 'aslan' | 'vargr';
+export type SpeciesId =
+  | 'human'
+  | 'aslan'
+  | 'vargr'
+  | 'solomani'
+  | 'vilani'
+  | 'sword_worlder'
+  | 'bwap'
+  | 'luriani'
+  | 'jonkeereen';
 
 export type SpeciesTrait = {
   name: string;
@@ -14,4 +23,7 @@ export type Species = {
   charModifiers: Partial<Record<CharCode, number>>;
   traits: SpeciesTrait[];
   description: string;
+  /** Where this species comes from — book/sourcebook/page. Shown on the
+   *  species picker so players know we didn't make it up. */
+  source?: string;
 };

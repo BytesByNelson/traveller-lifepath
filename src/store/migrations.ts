@@ -10,7 +10,11 @@ const isObject = (x: unknown): x is Record<string, unknown> =>
 
 const isInteger = (x: unknown): x is number => typeof x === 'number' && Number.isInteger(x);
 
-const validSpecies: SpeciesId[] = ['human', 'aslan', 'vargr'];
+const validSpecies: SpeciesId[] = [
+  'human', 'aslan', 'vargr',
+  'solomani', 'vilani', 'sword_worlder',
+  'bwap', 'luriani', 'jonkeereen',
+];
 
 /**
  * Walk a parsed-JSON value through any registered migrations and return a Character

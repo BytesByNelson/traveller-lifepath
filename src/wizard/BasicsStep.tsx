@@ -27,7 +27,7 @@ export function BasicsStep({
 
       <fieldset>
         <legend className="text-sm font-medium text-gray-700 mb-1">Species</legend>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
           {(Object.keys(SPECIES) as SpeciesId[]).map((id) => {
             const s = SPECIES[id];
             const selected = character.species === id;
@@ -36,6 +36,7 @@ export function BasicsStep({
                 type="button"
                 key={id}
                 onClick={() => onChange({ ...character, species: id })}
+                title={s.source ? `${s.description}\n\nSource: ${s.source}` : s.description}
                 className={`px-3 py-2 rounded border text-left ${
                   selected ? 'border-red-700 bg-red-50' : 'border-gray-300 hover:bg-gray-50'
                 }`}
@@ -46,6 +47,23 @@ export function BasicsStep({
             );
           })}
         </div>
+        {/* Source attribution + lore for the currently-selected species, so
+            players who care about canon can see exactly what book a pick
+            comes from. */}
+        {(() => {
+          const selected = SPECIES[character.species];
+          if (!selected) return null;
+          return (
+            <div className="mt-2 text-xs text-gray-600 italic">
+              {selected.description}
+              {selected.source ? (
+                <span className="block mt-0.5 not-italic text-gray-500">
+                  Source: {selected.source}
+                </span>
+              ) : null}
+            </div>
+          );
+        })()}
       </fieldset>
 
       <label className="block">
