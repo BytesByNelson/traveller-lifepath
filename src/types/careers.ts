@@ -15,7 +15,8 @@ export type CareerId =
   | 'scholar'
   | 'scout'
   | 'prisoner'
-  | 'psion';
+  | 'psion'
+  | 'solomani_party';
 
 export type SkillTableId =
   | 'personal_development'

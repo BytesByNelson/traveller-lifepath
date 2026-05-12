@@ -13,6 +13,7 @@ import { psion } from './psion';
 import { rogue } from './rogue';
 import { scholar } from './scholar';
 import { scout } from './scout';
+import { solomani_party } from './solomani_party';
 
 export const CAREERS: Record<CareerId, Career> = {
   agent,
@@ -29,6 +30,7 @@ export const CAREERS: Record<CareerId, Career> = {
   rogue,
   scholar,
   scout,
+  solomani_party,
 };
 
 export const CAREER_LIST: Career[] = Object.values(CAREERS);
