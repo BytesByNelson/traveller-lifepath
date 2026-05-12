@@ -2,6 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─────────── Accessibility: font-size scaling ─────────── */
+/* Bumps the root font size; Tailwind's rem-based utilities (text-xs, text-sm,
+   text-base, etc.) all scale proportionally. The pre-React init script in
+   index.html applies these classes synchronously so users who picked a larger
+   size don't see a 1-frame flash of the default. Print CSS overrides root
+   font-size explicitly (9pt), so printed sheets are unaffected. */
+html.font-large { font-size: 112.5%; } /* 16px → 18px */
+html.font-larger { font-size: 125%; } /* 16px → 20px */
+
 /* ─────────── Accessibility: focus indicators ─────────── */
 /* Every keyboard-focused element gets a visible 2px outline. The browser default
    (a thin blue line) is too subtle on dark backgrounds and easy to miss in light

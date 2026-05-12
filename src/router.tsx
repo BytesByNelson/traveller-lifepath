@@ -2,6 +2,7 @@ import { Suspense, lazy, type ComponentType } from 'react';
 import { Outlet, createHashRouter, useRouteError } from 'react-router-dom';
 import { AnalyticsRouteTracker } from './components/AnalyticsRouteTracker';
 import { ThemeSwitcher } from './components/ThemeSwitcher';
+import { FontSizeSwitcher } from './components/FontSizeSwitcher';
 
 /**
  * Wrap a lazy() loader so a stale-chunk failure (most common cause: a new build
@@ -120,7 +121,8 @@ const RootLayout = () => (
     {/* Bottom-right keeps the switcher discoverable but out of every page's
         header zone — the SheetPage action bar (Undo / Roll log / Export) sits
         in the top-right and collided with a top-anchored switcher. */}
-    <div className="fixed bottom-3 right-3 z-50 print:hidden">
+    <div className="fixed bottom-3 right-3 z-50 print:hidden flex items-center gap-2">
+      <FontSizeSwitcher />
       <ThemeSwitcher />
     </div>
   </>

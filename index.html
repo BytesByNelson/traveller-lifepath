@@ -34,6 +34,11 @@
               window.matchMedia &&
               window.matchMedia('(prefers-color-scheme: dark)').matches);
           if (dark) document.documentElement.classList.add('dark');
+          // Same idea for the accessibility font-size preference — apply the
+          // class synchronously so the page doesn't flash at default size.
+          var f = localStorage.getItem('traveller:fontSize');
+          if (f === 'large') document.documentElement.classList.add('font-large');
+          if (f === 'larger') document.documentElement.classList.add('font-larger');
         } catch (e) {
           /* noop */
         }
