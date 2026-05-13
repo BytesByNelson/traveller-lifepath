@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { generateNpc, type NpcOptions } from '../engine/npc';
 import { upsertCharacter } from '../store/characters';
 import { SPECIES } from '../data';
+import { SOCIETIES } from '../data/societies';
 import { Sheet } from '../components/sheet/Sheet';
-import type { Character, SpeciesId } from '../types';
+import type { Character, SocietyId, SpeciesId } from '../types';
 
 /**
  * NPC autopilot UI. The GM picks a few inputs, hits Generate, and the engine
@@ -19,6 +20,7 @@ export function NpcGeneratorPage() {
   const navigate = useNavigate();
   const [name, setName] = useState('');
   const [species, setSpecies] = useState<SpeciesId>('human');
+  const [society, setSociety] = useState<SocietyId>('third_imperium');
   const [terms, setTerms] = useState(3);
   const [psionics, setPsionics] = useState(false);
   const [generated, setGenerated] = useState<Character | undefined>(undefined);
@@ -27,11 +29,12 @@ export function NpcGeneratorPage() {
     const opts: NpcOptions = {
       name: name.trim() || undefined,
       species,
+      society,
       terms,
       psionics,
     };
     setGenerated(generateNpc(opts, Math.random));
-  }, [name, species, terms, psionics]);
+  }, [name, species, society, terms, psionics]);
 
   const reroll = useCallback(() => generate(), [generate]);
 
@@ -58,7 +61,7 @@ export function NpcGeneratorPage() {
           events, mustering — and produces a complete Traveller with a real career history. Re-roll until
           you get one you like, then save to add it to your library.
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
           <label className="block">
             <span className="text-sm font-medium text-gray-700">Name (optional)</span>
             <input
@@ -81,6 +84,22 @@ export function NpcGeneratorPage() {
               {(Object.keys(SPECIES) as SpeciesId[]).map((id) => (
                 <option key={id} value={id}>
                   {SPECIES[id].name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block">
+            <span className="text-sm font-medium text-gray-700">Society</span>
+            <select
+              value={society}
+              onChange={(e) => setSociety(e.target.value as SocietyId)}
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+              aria-label="NPC society"
+              title="Shapes the available career list and name flavour"
+            >
+              {(Object.keys(SOCIETIES) as SocietyId[]).map((id) => (
+                <option key={id} value={id}>
+                  {SOCIETIES[id].name}
                 </option>
               ))}
             </select>

@@ -13,7 +13,7 @@
  * exposes a Re-roll button so GMs can discard and try again until they get one
  * they like.
  */
-import type { CareerId, CharCode, Character, SkillName, SkillRef, SpeciesId } from '../types';
+import type { CareerId, CharCode, Character, SkillName, SkillRef, SocietyId, SpeciesId } from '../types';
 import { generateNpcName } from './npc-names';
 import { BACKGROUND_SKILLS, CAREERS, CAREER_LIST, SKILLS } from '../data';
 import { ARMOUR, AUGMENTS, GEAR, WEAPONS } from '../data/equipment';
@@ -58,6 +58,10 @@ export type NpcOptions = {
   name?: string;
   /** Species. Defaults to 'human'. */
   species?: SpeciesId;
+  /** Society / interstellar polity. Defaults to 'third_imperium'. Shapes
+   *  name flavour, available faction-specific careers, and the NPC's
+   *  political context on the resulting sheet. */
+  society?: SocietyId;
   /** Number of career terms to attempt. Defaults to 3 (≈30 years old). */
   terms?: number;
   /** Optional career hint — will try this career first each time. Otherwise random. */
@@ -74,12 +78,15 @@ export type NpcOptions = {
 export function generateNpc(opts: NpcOptions, rng: Rng = Math.random): Character {
   const id = opts.id ?? crypto.randomUUID();
   const species = opts.species ?? 'human';
-  // Generate a species-appropriate name when blank — "Unnamed Traveller" is
-  // a placeholder for an in-progress wizard, not a finished NPC.
-  const name = (opts.name ?? '').trim() || generateNpcName(species, rng);
+  const society = opts.society ?? 'third_imperium';
+  // Generate a species + society-appropriate name when blank — Solomani
+  // Confederation humans pull from a Terran-heritage pool, Zhodani humans
+  // from a Zhodani-flavoured pool, and aliens always use their own.
+  const name = (opts.name ?? '').trim() || generateNpcName(species, society, rng);
   const targetTerms = Math.max(1, Math.min(7, opts.terms ?? 3));
 
   let c = newCharacter(id, name, species);
+  c = { ...c, society };
   if (opts.psionics) {
     c = {
       ...c,
@@ -247,10 +254,17 @@ function pickCareerSequence(
   const out: CareerId[] = [];
   // Prisoner is reserved for forced routing via in-game events. Psion is
   // gated behind the "Include PSI" option — randomly handing out psionic
-  // careers to mundane NPCs would be lore-breaking.
+  // careers to mundane NPCs would be lore-breaking. Faction careers (with
+  // availableInSocieties set) are filtered to match the NPC's society —
+  // a Solomani Confederation NPC can roll into Solomani Party, but an
+  // Imperial Traveller cannot.
+  const society = c.society ?? 'third_imperium';
   const allCareers = CAREER_LIST.filter((career) => {
     if (career.id === 'prisoner') return false;
     if (career.id === 'psion' && !includePsion) return false;
+    if (career.availableInSocieties && career.availableInSocieties.length > 0) {
+      return career.availableInSocieties.includes(society);
+    }
     return true;
   });
   for (let i = 0; i < terms; i++) {
