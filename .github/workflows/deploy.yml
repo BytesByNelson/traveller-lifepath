@@ -32,6 +32,24 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+      # Smoke + a11y gate the deploy. Both run against the just-built artifact
+      # served by `vite preview` so we test the exact bytes about to ship, not
+      # the live site (which would create a chicken-and-egg with the deploy).
+      # A failure here aborts the deploy step — better to leave the previous
+      # build live than push a regression.
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Smoke + a11y against the built artifact
+        run: |
+          npx vite preview --port 4173 &
+          PREVIEW_PID=$!
+          # Give vite preview a moment to bind to the port.
+          sleep 3
+          # Confirm the preview answered before we hit it.
+          curl --silent --show-error --fail --max-time 5 http://localhost:4173/traveller-lifepath/ > /dev/null
+          SMOKE_URL=http://localhost:4173/traveller-lifepath/ npm run smoke
+          A11Y_URL=http://localhost:4173/traveller-lifepath/ npm run a11y
+          kill $PREVIEW_PID || true
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
