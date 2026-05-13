@@ -16,7 +16,8 @@ export type CareerId =
   | 'scout'
   | 'prisoner'
   | 'psion'
-  | 'solomani_party';
+  | 'solomani_party'
+  | 'confederation_navy';
 
 export type SkillTableId =
   | 'personal_development'
